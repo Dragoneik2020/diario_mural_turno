@@ -129,8 +129,8 @@ export default function AdminStats({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-4 py-8 sm:items-center sm:py-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-lift max-h-[85vh] overflow-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-2 sm:items-center sm:p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-lift max-h-[85vh] overflow-auto rise">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">
                 {open === "workers" && "Trabajadores"}
