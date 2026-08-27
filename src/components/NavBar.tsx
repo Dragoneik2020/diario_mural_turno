@@ -37,9 +37,9 @@ export default function NavBar({
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
-      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-slate-900">
-          <span className="h-8 w-8 rounded-lg bg-brand-600 text-white flex items-center justify-center">
+      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-2 font-bold text-slate-900 tracking-tight">
+          <span className="h-8 w-8 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-soft">
             <Calendar className="h-5 w-5" />
           </span>
           <span className="hidden sm:block">

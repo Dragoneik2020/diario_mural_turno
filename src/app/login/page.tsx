@@ -35,15 +35,19 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex rise">
-      <div className="hidden lg:flex w-1/2 bg-brand-600 text-white flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
+      <div className="hidden lg:flex w-1/2 bg-brand-600 text-white flex-col justify-between p-12 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"
+        />
+        <div className="relative flex items-center gap-3">
           <span className="h-11 w-11 rounded-2xl bg-white/15 flex items-center justify-center">
             <CalendarCheck className="h-6 w-6" />
           </span>
-          <span className="text-xl font-bold">{APP_NAME}</span>
+          <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
         </div>
-        <div>
-          <h2 className="text-3xl font-bold leading-tight">
+        <div className="relative">
+          <h2 className="text-3xl font-bold leading-tight tracking-tight">
             El diario mural de turnos de tu equipo
           </h2>
           <p className="mt-4 text-brand-100 max-w-sm">
@@ -51,7 +55,7 @@ export default function LoginPage() {
             trabajadores, siempre informados.
           </p>
         </div>
-        <div className="text-sm text-brand-200">
+        <div className="relative text-sm text-brand-200">
           © {new Date().getFullYear()} · Demo
         </div>
       </div>

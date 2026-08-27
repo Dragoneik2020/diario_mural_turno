@@ -118,8 +118,8 @@ export default function AdminStats({
               <span className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl ${meta.tint}`}>
                 <meta.icon className="h-5 w-5" />
               </span>
-              <div className="text-2xl font-bold text-brand-700">{c.value}</div>
-              <div className="text-xs text-slate-500 mt-1">{c.label}</div>
+              <div className="kpi-value">{c.value}</div>
+              <div className="text-[11px] uppercase tracking-wide text-slate-500 mt-1">{c.label}</div>
               <div className="text-[10px] text-brand-500 mt-0.5 flex items-center justify-center gap-0.5">
                 {c.hint} <ChevronRight className="h-3 w-3" />
               </div>
