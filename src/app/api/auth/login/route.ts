@@ -37,11 +37,17 @@ export async function POST(req: NextRequest) {
     };
     const token = await createToken(session);
 
+    const proto =
+      req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+      req.nextUrl.protocol ||
+      "http";
+    const secure = proto === "https";
+
     const res = NextResponse.json({ session });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure,
       path: "/",
       maxAge: SESSION_MAX_AGE,
     });
