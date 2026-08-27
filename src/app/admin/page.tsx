@@ -7,6 +7,7 @@ import LlamadosPorTrabajador from "@/components/LlamadosPorTrabajador";
 import ShiftReports from "@/components/ShiftReports";
 import AdminStats from "@/components/AdminStats";
 import AdminTopTabs from "@/components/AdminTopTabs";
+import TeamCalendar from "@/components/TeamCalendar";
 import { ClipboardList } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,8 @@ export default async function AdminPage() {
           pendingShifts={pendingShifts}
           todayShifts={todayShifts}
         />
+
+        <TeamCalendar currentUserId={session.id} />
 
         <section className="card">
           <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>
