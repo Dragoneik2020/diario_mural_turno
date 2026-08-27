@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/session";
+import { requireUser, requireAdmin, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,9 @@ const annSchema = z.object({
 // GET: lista de anuncios (todos los autenticados)
 export async function GET() {
   try {
-    await requireUser();
+    const session = await requireUser();
     const announcements = await prisma.announcement.findMany({
+      where: { ...branchWhere(session) },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       include: { author: { select: { name: true } } },
     });
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     const ann = await prisma.announcement.create({
       data: {
         authorId: session.id,
+        branchId: session.branchId ?? null,
         content: parsed.content,
         pinned: parsed.pinned ?? false,
       },

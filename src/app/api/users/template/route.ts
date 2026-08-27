@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
+import { requireAdmin, branchWhere } from "@/lib/session";
 import { getCargos } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
 
-    const cargos = await getCargos();
-    const users = await prisma.user.findMany({ select: { department: true } });
+    const cargos = await getCargos(session.branchId);
+    const users = await prisma.user.findMany({
+      where: { ...branchWhere(session) },
+      select: { department: true },
+    });
     const deptos = Array.from(new Set(users.map((u) => u.department).filter((d): d is string => !!d)));
 
     const rolList = ["worker", "admin"];

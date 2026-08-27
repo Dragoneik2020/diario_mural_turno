@@ -30,4 +30,4 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
-CMD ["sh", "-c", "npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts && npx next start -p 3000"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push --accept-data-loss && npx tsx prisma/seed.ts && npx next start -p 3000"]

@@ -28,12 +28,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
     }
 
+    const branch = user.branchId
+      ? await prisma.branch.findUnique({
+          where: { id: user.branchId },
+          select: { name: true },
+        })
+      : null;
+
     const session: Session = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role as AppRole,
       department: user.department,
+      branchId: user.branchId,
+      branchName: branch?.name ?? null,
     };
     const token = await createToken(session);
 

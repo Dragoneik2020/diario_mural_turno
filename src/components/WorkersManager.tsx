@@ -15,10 +15,34 @@ export interface WorkerRow {
   department: string | null;
   cargo: string | null;
   active: boolean;
+  branchId?: string | null;
   _count: { shifts: number };
 }
 
-export default function WorkersManager({ users }: { users: WorkerRow[] }) {
+export interface BranchOpt {
+  id: string;
+  name: string;
+}
+
+function roleLabel(r: string): string {
+  if (r === "superadmin") return "Super Admin";
+  if (r === "admin") return "Admin";
+  return "Trabajador";
+}
+
+function isChooseable(r: string): boolean {
+  return r === "admin" || r === "superadmin";
+}
+
+export default function WorkersManager({
+  users,
+  branches = [],
+  superadmin = false,
+}: {
+  users: WorkerRow[];
+  branches?: BranchOpt[];
+  superadmin?: boolean;
+}) {
   const router = useRouter();
   const [list, setList] = useState<WorkerRow[]>(users);
   const [editing, setEditing] = useState<WorkerRow | null>(null);
@@ -35,6 +59,7 @@ export default function WorkersManager({ users }: { users: WorkerRow[] }) {
     department: "",
     cargo: "",
     active: true,
+    branchId: branches[0]?.id ?? "",
   };
   const [form, setForm] = useState({ ...blank });
 
@@ -62,6 +87,7 @@ export default function WorkersManager({ users }: { users: WorkerRow[] }) {
       department: u.department || "",
       cargo: u.cargo || "",
       active: u.active,
+      branchId: u.branchId ?? branches[0]?.id ?? "",
     });
     setShowForm(true);
     setError("");
@@ -82,8 +108,14 @@ export default function WorkersManager({ users }: { users: WorkerRow[] }) {
           cargo: form.cargo || null,
           active: form.active,
           ...(form.password ? { password: form.password } : {}),
+          ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
         }
-      : { ...form, department: form.department || null, cargo: form.cargo || null };
+      : {
+          ...form,
+          department: form.department || null,
+          cargo: form.cargo || null,
+          ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
+        };
 
     const res = await fetch(url, {
       method,
@@ -158,8 +190,20 @@ export default function WorkersManager({ users }: { users: WorkerRow[] }) {
               <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })}>
                 <option value="worker">Trabajador</option>
                 <option value="admin">Admin</option>
+                {superadmin && <option value="superadmin">Super Admin</option>}
               </select>
             </div>
+            {superadmin && (
+              <div>
+                <label className="label">Sucursal</label>
+                <select className="input" value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
+                  {branches.length === 0 && <option value="">Sin sucursales</option>}
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <label className="flex items-center gap-2 text-sm text-slate-600 mt-6">
               <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
               Activo
@@ -204,8 +248,8 @@ export default function WorkersManager({ users }: { users: WorkerRow[] }) {
                  <td className="py-2 pr-2 text-slate-500">{u.department || "—"}</td>
                  <td className="py-2 pr-2 text-slate-500">{u.cargo || "—"}</td>
                  <td className="py-2 pr-2">
-                  <span className={`badge ${u.role === "admin" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"}`}>
-                    {u.role === "admin" ? "Admin" : "Trabajador"}
+                  <span className={`badge ${isChooseable(u.role) ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"}`}>
+                    {roleLabel(u.role)}
                   </span>
                 </td>
                 <td className="py-2 pr-2 text-slate-500">{u._count.shifts}</td>

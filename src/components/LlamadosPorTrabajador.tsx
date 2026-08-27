@@ -51,7 +51,7 @@ export default function LlamadosPorTrabajador() {
       ]);
       setShifts(Array.isArray(s.shifts) ? s.shifts : []);
       const list = Array.isArray(u) ? u : u.users || [];
-      setUsers(list.filter((x: ApiUser) => x.role !== "admin"));
+      setUsers(list.filter((x: ApiUser) => x.role !== "admin" && x.role !== "superadmin"));
       setLoading(false);
     })();
   }, []);

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/session";
+import {
+  requireUser,
+  requireAdmin,
+  canManageRole,
+  isSuperAdmin,
+  branchWhere,
+} from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +16,11 @@ const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
-  role: z.enum(["worker", "admin"]).optional(),
+  role: z.enum(["worker", "admin", "superadmin"]).optional(),
   department: z.string().optional(),
   cargo: z.string().optional(),
   active: z.boolean().optional(),
+  branchId: z.string().optional(),
 });
 
 export async function PATCH(
@@ -22,18 +29,37 @@ export async function PATCH(
 ) {
   try {
     const session = await requireUser();
-    const isAdmin = session.role === "admin";
-    if (!isAdmin && session.id !== params.id)
+    const isManager = canManageRole(session.role);
+    const isSuper = isSuperAdmin(session);
+    if (!isManager && session.id !== params.id)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+
+    if (isManager) {
+      const target = await prisma.user.findFirst({
+        where: { id: params.id, ...branchWhere(session) },
+        select: { id: true },
+      });
+      if (!target)
+        return NextResponse.json(
+          { error: "Trabajador no encontrado" },
+          { status: 404 }
+        );
+    }
 
     const body = await req.json();
     const parsed = userUpdateSchema.parse(body);
 
+    if (parsed.role === "superadmin" && !isSuper)
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    if (parsed.branchId && !isSuper)
+      delete (parsed as any).branchId;
+
     // Un trabajador solo puede editar sus datos básicos.
-    if (!isAdmin) {
+    if (!isManager) {
       delete (parsed as any).role;
       delete (parsed as any).active;
       delete (parsed as any).cargo;
+      delete (parsed as any).branchId;
     }
 
     const data: any = { ...parsed };
@@ -76,7 +102,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
+    const target = await prisma.user.findFirst({
+      where: { id: params.id, ...branchWhere(session) },
+      select: { id: true },
+    });
+    if (!target)
+      return NextResponse.json({ error: "Trabajador no encontrado" }, { status: 404 });
     await prisma.user.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {

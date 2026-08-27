@@ -10,23 +10,28 @@ import Avatar from "@/components/Avatar";
 export default function NavBar({
   name,
   role,
+  branchName,
 }: {
   name: string;
   role: AppRole;
+  branchName?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const pathname =
     typeof window !== "undefined" ? window.location.pathname : "";
 
-  const links: { href: string; label: string }[] =
-    role === "admin"
-      ? [
-          { href: "/admin", label: "Panel Admin" },
-          { href: "/admin/turnos", label: "Gestión de turnos" },
-          { href: "/dashboard", label: "Mi vista" },
-        ]
-      : [{ href: "/dashboard", label: "Mi panel" }];
+  const isManager = role === "admin" || role === "superadmin";
+  const roleLabel =
+    role === "superadmin" ? "Super Admin" : role === "admin" ? "Admin" : null;
+
+  const links: { href: string; label: string }[] = isManager
+    ? [
+        { href: "/admin", label: "Panel Admin" },
+        { href: "/admin/turnos", label: "Gestión de turnos" },
+        { href: "/dashboard", label: "Mi vista" },
+      ]
+    : [{ href: "/dashboard", label: "Mi panel" }];
 
   async function logout() {
     setBusy(true);
@@ -77,8 +82,21 @@ export default function NavBar({
             <Avatar name={name} size="sm" className="hidden sm:flex" />
             <span className="text-sm text-slate-600 hidden sm:block">
               {name}
-              {role === "admin" && (
-                <span className="badge bg-brand-100 text-brand-700 ml-1">Admin</span>
+              {roleLabel && (
+                <span
+                  className={`badge ml-1 ${
+                    role === "superadmin"
+                      ? "bg-rose-100 text-rose-700"
+                      : "bg-brand-100 text-brand-700"
+                  }`}
+                >
+                  {roleLabel}
+                </span>
+              )}
+              {branchName && (
+                <span className="block text-[11px] text-slate-400 leading-tight">
+                  {branchName}
+                </span>
               )}
             </span>
             <button onClick={logout} disabled={busy} className="btn-ghost px-3 py-1.5">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/session";
+import { requireUser, requireAdmin, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +17,15 @@ interface PollWithVotes {
 export async function GET() {
   try {
     const session = await requireUser();
+    const scope = branchWhere(session);
     const announcements = await prisma.announcement.findMany({
+      where: { ...scope },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       include: { author: { select: { name: true } } },
     });
 
     const pollsRaw = await prisma.poll.findMany({
-      where: { active: true },
+      where: { active: true, ...scope },
       orderBy: { createdAt: "desc" },
       include: {
         options: { orderBy: { order: "asc" } },
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
     const poll = await prisma.poll.create({
       data: {
         authorId: session.id,
+        branchId: session.branchId ?? null,
         question: parsed.question,
         options: {
           create: parsed.options.map((label, i) => ({ label, order: i })),

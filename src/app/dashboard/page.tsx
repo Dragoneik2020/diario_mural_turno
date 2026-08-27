@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { canManageRole } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import WorkerDashboardTabs from "@/components/WorkerDashboardTabs";
 import MuralPanel from "@/components/MuralPanel";
@@ -10,11 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role === "admin") redirect("/admin");
+  if (canManageRole(session.role)) redirect("/admin");
 
   return (
     <div className="min-h-screen">
-      <NavBar name={session.name} role={session.role} />
+      <NavBar name={session.name} role={session.role} branchName={session.branchName} />
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-6 rise">
         <div className="flex items-center gap-3">
           <Avatar name={session.name} size="lg" />

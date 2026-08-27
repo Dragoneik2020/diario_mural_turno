@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, canManageRole, branchWhere } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -29,11 +29,13 @@ export async function PATCH(
 ) {
   try {
     const session = await requireUser();
-    const shift = await prisma.shift.findUnique({ where: { id: params.id } });
+    const shift = await prisma.shift.findFirst({
+      where: { id: params.id, ...branchWhere(session) },
+    });
     if (!shift)
       return NextResponse.json({ error: "Turno no encontrado" }, { status: 404 });
 
-    const isAdmin = session.role === "admin";
+    const isAdmin = canManageRole(session.role);
     if (!isAdmin && shift.userId !== session.id) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
@@ -98,11 +100,13 @@ export async function DELETE(
 ) {
   try {
     const session = await requireUser();
-    const shift = await prisma.shift.findUnique({ where: { id: params.id } });
+    const shift = await prisma.shift.findFirst({
+      where: { id: params.id, ...branchWhere(session) },
+    });
     if (!shift)
       return NextResponse.json({ error: "Turno no encontrado" }, { status: 404 });
 
-    const isAdmin = session.role === "admin";
+    const isAdmin = canManageRole(session.role);
     if (!isAdmin && shift.userId !== session.id) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }

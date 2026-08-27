@@ -7,7 +7,7 @@ const secret = new TextEncoder().encode(
 export const SESSION_COOKIE = "dt_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-export type AppRole = "worker" | "admin";
+export type AppRole = "worker" | "admin" | "superadmin";
 
 export interface Session {
   id: string;
@@ -15,6 +15,8 @@ export interface Session {
   email: string;
   role: AppRole;
   department?: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
 }
 
 export async function createToken(session: Session): Promise<string> {
@@ -24,6 +26,8 @@ export async function createToken(session: Session): Promise<string> {
     email: session.email,
     role: session.role,
     department: session.department ?? null,
+    branchId: session.branchId ?? null,
+    branchName: session.branchName ?? null,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -40,6 +44,8 @@ export async function verifyToken(token: string): Promise<Session | null> {
       email: payload.email as string,
       role: payload.role as AppRole,
       department: (payload.department as string | null) ?? null,
+      branchId: (payload.branchId as string | null) ?? null,
+      branchName: (payload.branchName as string | null) ?? null,
     };
   } catch {
     return null;

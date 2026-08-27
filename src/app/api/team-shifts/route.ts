@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    const where: any = {};
+    const where: any = { ...branchWhere(session) };
     if (from) where.date = { ...(where.date || {}), gte: new Date(from) };
     if (to) where.date = { ...(where.date || {}), lte: new Date(to) };
 

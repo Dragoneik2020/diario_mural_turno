@@ -55,10 +55,11 @@ export async function notifyShiftAssigned(
   worker: WorkerLite,
   shift: ShiftLite,
   typeLabel: string,
-  template: Template = "assignment"
+  template: Template = "assignment",
+  branchId?: string | null
 ): Promise<boolean> {
   if (!worker.email) return false;
-  const cfg = await getEmailNotifications();
+  const cfg = await getEmailNotifications(branchId);
   if (template === "morning" && !cfg.morningEnabled) return false;
   if (template === "assignment" && !cfg.enabled) return false;
 
@@ -96,13 +97,14 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
       where: { id: shiftId },
       include: { user: { select: { name: true, email: true, cargo: true, role: true } } },
     });
-    if (!shift || shift.user.role === "admin") return;
-    const labels = await getShiftTypeLabels();
+    if (!shift || shift.user.role === "admin" || shift.user.role === "superadmin") return;
+    const labels = await getShiftTypeLabels(shift.branchId);
     await notifyShiftAssigned(
       { name: shift.user.name, email: shift.user.email, cargo: shift.user.cargo },
       shift,
       labels[shift.type] ?? shift.type,
-      template
+      template,
+      shift.branchId
     );
   } catch {
     /* notificación opcional */

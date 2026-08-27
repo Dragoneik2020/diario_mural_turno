@@ -14,11 +14,20 @@ export async function middleware(req: NextRequest) {
 
   if (pathname === "/login") {
     return NextResponse.redirect(
-      new URL(session.role === "admin" ? "/admin" : "/dashboard", req.url)
+      new URL(
+        session.role === "admin" || session.role === "superadmin"
+          ? "/admin"
+          : "/dashboard",
+        req.url
+      )
     );
   }
 
-  if (pathname.startsWith("/admin") && session.role !== "admin") {
+  if (
+    pathname.startsWith("/admin") &&
+    session.role !== "admin" &&
+    session.role !== "superadmin"
+  ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

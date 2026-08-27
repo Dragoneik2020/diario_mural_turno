@@ -12,7 +12,7 @@ export default async function PerfilPage() {
 
   return (
     <div className="min-h-screen">
-      <NavBar name={session.name} role={session.role} />
+      <NavBar name={session.name} role={session.role} branchName={session.branchName} />
       <main className="mx-auto max-w-xl px-4 py-6 rise">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Mi perfil</h1>
         <p className="text-slate-500 mb-6">Configura tus datos personales.</p>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
+import { requireAdmin, isSuperAdmin, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,26 +10,29 @@ const userCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["worker", "admin"]).default("worker"),
+  role: z.enum(["worker", "admin", "superadmin"]).default("worker"),
   department: z.string().optional(),
   cargo: z.string().optional(),
   active: z.boolean().default(true),
+  branchId: z.string().optional(),
 });
 
 const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
-  role: z.enum(["worker", "admin"]).optional(),
+  role: z.enum(["worker", "admin", "superadmin"]).optional(),
   department: z.string().optional(),
   cargo: z.string().optional(),
   active: z.boolean().optional(),
+  branchId: z.string().optional(),
 });
 
 export async function GET() {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const users = await prisma.user.findMany({
+      where: { ...branchWhere(session) },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -39,6 +42,7 @@ export async function GET() {
         department: true,
         cargo: true,
         active: true,
+        branchId: true,
         createdAt: true,
         _count: { select: { shifts: true } },
       },
@@ -53,13 +57,20 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const body = await req.json();
     const parsed = userCreateSchema.parse(body);
+
+    const isSuper = isSuperAdmin(session);
+    if (parsed.role === "superadmin" && !isSuper)
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
     if (exists)
       return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
+
+    const branchId =
+      isSuper && parsed.branchId ? parsed.branchId : session.branchId ?? null;
 
     const password = await bcrypt.hash(parsed.password, 10);
     const user = await prisma.user.create({
@@ -71,6 +82,7 @@ export async function POST(req: NextRequest) {
         department: parsed.department,
         cargo: parsed.cargo,
         active: parsed.active,
+        branchId,
       },
       select: {
         id: true,
@@ -80,6 +92,7 @@ export async function POST(req: NextRequest) {
         department: true,
         cargo: true,
         active: true,
+        branchId: true,
       },
     });
     return NextResponse.json({ user }, { status: 201 });

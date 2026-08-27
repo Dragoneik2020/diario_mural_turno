@@ -17,10 +17,11 @@ const rowSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
     const defaultPassword: string | undefined = body.defaultPassword;
+    const branchId = session.branchId ?? null;
 
     const created: { email: string; name: string }[] = [];
     const errors: { email: string; error: string }[] = [];
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
             department: department || null,
             cargo: cargo || null,
             active: true,
+            branchId,
           },
           select: { id: true, name: true, email: true },
         });

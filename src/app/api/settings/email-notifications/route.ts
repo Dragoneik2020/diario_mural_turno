@@ -6,28 +6,22 @@ import {
   EmailNotifConfig,
   DEFAULT_SMTP,
   SmtpConfig,
+  getEmailNotifications,
+  getSmtpConfig,
+  getCronSecret,
+  GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireUser();
-    const [row, smtpRow, cronRow] = await Promise.all([
-      prisma.setting.findUnique({ where: { key: "emailNotifications" } }),
-      prisma.setting.findUnique({ where: { key: "smtp" } }),
-      prisma.setting.findUnique({ where: { key: "cronSecret" } }),
+    const session = await requireUser();
+    const [config, smtp, cronSecret] = await Promise.all([
+      getEmailNotifications(session.branchId),
+      getSmtpConfig(),
+      getCronSecret(),
     ]);
-    const config: EmailNotifConfig = row
-      ? { ...DEFAULT_EMAIL_NOTIF, ...JSON.parse(row.value) }
-      : DEFAULT_EMAIL_NOTIF;
-    const smtp: SmtpConfig = smtpRow
-      ? (() => {
-          const p = JSON.parse(smtpRow.value);
-          return { ...DEFAULT_SMTP, ...p, port: Number(p.port) || DEFAULT_SMTP.port };
-        })()
-      : DEFAULT_SMTP;
-    const cronSecret = cronRow ? JSON.parse(cronRow.value) : "";
     return NextResponse.json({ config, smtp, cronSecret });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED")
@@ -42,7 +36,7 @@ function str(v: any, fallback = ""): string {
 
 export async function PATCH(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const body = await req.json();
     const input = body && body.config ? body.config : body;
 
@@ -69,10 +63,11 @@ export async function PATCH(req: NextRequest) {
           ? input.morningBody.trim()
           : DEFAULT_EMAIL_NOTIF.morningBody,
     };
+    const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
     await prisma.setting.upsert({
-      where: { key: "emailNotifications" },
+      where: { branchId_key: { branchId, key: "emailNotifications" } },
       update: { value: JSON.stringify(config) },
-      create: { key: "emailNotifications", value: JSON.stringify(config) },
+      create: { branchId, key: "emailNotifications", value: JSON.stringify(config) },
     });
 
     if (body && body.smtp) {
@@ -86,17 +81,21 @@ export async function PATCH(req: NextRequest) {
         from: str(s.from),
       };
       await prisma.setting.upsert({
-        where: { key: "smtp" },
+        where: { branchId_key: { branchId: GLOBAL_BRANCH_ID, key: "smtp" } },
         update: { value: JSON.stringify(smtp) },
-        create: { key: "smtp", value: JSON.stringify(smtp) },
+        create: { branchId: GLOBAL_BRANCH_ID, key: "smtp", value: JSON.stringify(smtp) },
       });
     }
 
     if (body && typeof body.cronSecret === "string" && body.cronSecret.trim()) {
       await prisma.setting.upsert({
-        where: { key: "cronSecret" },
+        where: { branchId_key: { branchId: GLOBAL_BRANCH_ID, key: "cronSecret" } },
         update: { value: JSON.stringify(body.cronSecret.trim()) },
-        create: { key: "cronSecret", value: JSON.stringify(body.cronSecret.trim()) },
+        create: {
+          branchId: GLOBAL_BRANCH_ID,
+          key: "cronSecret",
+          value: JSON.stringify(body.cronSecret.trim()),
+        },
       });
     }
 

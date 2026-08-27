@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGlobalMetrics } from "@/lib/metrics";
+import { canManageRole, branchWhere, isSuperAdmin } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import LlamadosPorTrabajador from "@/components/LlamadosPorTrabajador";
 import ShiftReports from "@/components/ShiftReports";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "admin") redirect("/dashboard");
+  if (!canManageRole(session.role)) redirect("/dashboard");
 
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -26,9 +27,12 @@ export default async function AdminPage() {
   const tomorrow = new Date(start);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const scope = branchWhere(session);
+
   const [users, metrics, boardShifts, monthShifts, pendingShifts, todayShifts] =
     await Promise.all([
       prisma.user.findMany({
+        where: { ...scope },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -37,27 +41,28 @@ export default async function AdminPage() {
           role: true,
           department: true,
           active: true,
+          branchId: true,
           _count: { select: { shifts: true } },
         },
       }),
-      getGlobalMetrics(30),
+      getGlobalMetrics(30, session.branchId),
       prisma.shift.findMany({
-        where: { date: { gte: start, lt: end } },
+        where: { date: { gte: start, lt: end }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: [{ date: "asc" }, { start: "asc" }],
       }),
       prisma.shift.findMany({
-        where: { date: { gte: from30 } },
+        where: { date: { gte: from30 }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: { start: "desc" },
       }),
       prisma.shift.findMany({
-        where: { status: "asignado" },
+        where: { status: "asignado", ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: { start: "asc" },
       }),
       prisma.shift.findMany({
-        where: { date: { gte: start, lt: tomorrow } },
+        where: { date: { gte: start, lt: tomorrow }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: { start: "asc" },
       }),
@@ -65,14 +70,22 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen">
-      <NavBar name={session.name} role={session.role} />
+      <NavBar
+        name={session.name}
+        role={session.role}
+        branchName={session.branchName}
+      />
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-6 rise">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Panel de administración</h1>
-          <p className="text-slate-500">Gestiona trabajadores, turnos y métricas.</p>
+          <p className="text-slate-500">
+            {isSuperAdmin(session)
+              ? "Vista global de todas las sucursales."
+              : `Sucursal: ${session.branchName ?? "—"}`}
+          </p>
         </div>
 
-        <AdminTopTabs current="/admin" />
+        <AdminTopTabs current="/admin" superadmin={isSuperAdmin(session)} />
 
         <AdminStats
           metrics={metrics}

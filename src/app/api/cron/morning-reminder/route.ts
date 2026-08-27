@@ -24,27 +24,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const cfg = await getEmailNotifications();
-  if (!cfg.morningEnabled) {
-    return NextResponse.json({ ok: true, skipped: "recordatorio matutino desactivado" });
-  }
-
   const today = startOfDay(new Date());
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const shifts = await prisma.shift.findMany({
-    where: { date: { gte: today, lt: tomorrow } },
-    include: { user: { select: { id: true, name: true, email: true, cargo: true, role: true } } },
-  });
-
+  const branches = await prisma.branch.findMany({ select: { id: true } });
   let sent = 0;
-  for (const s of shifts) {
-    if (s.user.role === "admin") continue;
-    if (s.status === "cumplido") continue;
-    await notifyShiftById(s.id, "morning");
-    sent++;
+  let shiftsToday = 0;
+
+  for (const branch of branches) {
+    const cfg = await getEmailNotifications(branch.id);
+    if (!cfg.morningEnabled) continue;
+
+    const shifts = await prisma.shift.findMany({
+      where: { date: { gte: today, lt: tomorrow }, branchId: branch.id },
+      include: { user: { select: { id: true, name: true, email: true, cargo: true, role: true } } },
+    });
+    shiftsToday += shifts.length;
+
+    for (const s of shifts) {
+      if (s.user.role === "admin" || s.user.role === "superadmin") continue;
+      if (s.status === "cumplido") continue;
+      await notifyShiftById(s.id, "morning");
+      sent++;
+    }
   }
 
-  return NextResponse.json({ ok: true, shiftsToday: shifts.length, emailsSent: sent });
+  return NextResponse.json({ ok: true, shiftsToday, emailsSent: sent });
 }

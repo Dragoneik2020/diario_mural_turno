@@ -29,7 +29,11 @@ export default function LoginPage() {
       return;
     }
     const { session } = await res.json();
-    router.push(session.role === "admin" ? "/admin" : "/dashboard");
+    router.push(
+      session.role === "admin" || session.role === "superadmin"
+        ? "/admin"
+        : "/dashboard"
+    );
     router.refresh();
   }
 
@@ -107,8 +111,16 @@ export default function LoginPage() {
           <div className="mt-6 text-xs text-slate-500 card">
             <p className="font-semibold text-slate-600 mb-1">Cuentas de demostración</p>
             <p>
-              <span className="badge bg-brand-100 text-brand-700 mr-1">Admin</span>{" "}
+              <span className="badge bg-rose-100 text-rose-700 mr-1">Super Admin</span>{" "}
               admin@demo.com / admin123
+            </p>
+            <p>
+              <span className="badge bg-brand-100 text-brand-700 mr-1">Admin Central</span>{" "}
+              central@demo.com / admin123
+            </p>
+            <p>
+              <span className="badge bg-brand-100 text-brand-700 mr-1">Admin Norte</span>{" "}
+              norte@demo.com / admin123
             </p>
             <p>
               <span className="badge bg-slate-100 text-slate-600 mr-1">Trabajador</span>{" "}

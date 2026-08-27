@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canManageRole, branchWhere, isSuperAdmin } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminShiftsTabs from "@/components/AdminShiftsTabs";
 import AdminTopTabs from "@/components/AdminTopTabs";
@@ -11,14 +12,18 @@ export const dynamic = "force-dynamic";
 export default async function TurnosPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "admin") redirect("/dashboard");
+  if (!canManageRole(session.role)) redirect("/dashboard");
+
+  const scope = branchWhere(session);
 
   const [users, shifts] = await Promise.all([
     prisma.user.findMany({
+      where: { ...scope },
       orderBy: { createdAt: "desc" },
       select: { id: true, name: true, department: true },
     }),
     prisma.shift.findMany({
+      where: { ...scope },
       orderBy: { start: "desc" },
       take: 200,
       include: { user: { select: { id: true, name: true, department: true } } },
@@ -27,7 +32,11 @@ export default async function TurnosPage() {
 
   return (
     <div className="min-h-screen">
-      <NavBar name={session.name} role={session.role} />
+      <NavBar
+        name={session.name}
+        role={session.role}
+        branchName={session.branchName}
+      />
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-4 rise">
         <div>
           <a href="/admin" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:underline">
@@ -40,7 +49,7 @@ export default async function TurnosPage() {
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/turnos" />
+        <AdminTopTabs current="/admin/turnos" superadmin={isSuperAdmin(session)} />
 
         <AdminShiftsTabs shifts={shifts} users={users} />
       </main>

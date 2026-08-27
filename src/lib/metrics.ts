@@ -53,12 +53,13 @@ export interface GlobalMetrics {
 
 export async function getPersonalMetrics(
   userId: string,
-  rangeDays = 30
+  rangeDays = 30,
+  branchId?: string | null
 ): Promise<PersonalMetrics> {
   const from = startOfDay(new Date());
   from.setDate(from.getDate() - (rangeDays - 1));
 
-  const labels = await getShiftTypeLabels();
+  const labels = await getShiftTypeLabels(branchId);
   const shifts = await prisma.shift.findMany({
     where: { userId, date: { gte: from } },
     orderBy: { date: "asc" },
@@ -110,22 +111,27 @@ export async function getPersonalMetrics(
   };
 }
 
-export async function getGlobalMetrics(rangeDays = 30): Promise<GlobalMetrics> {
+export async function getGlobalMetrics(
+  rangeDays = 30,
+  branchId?: string | null
+): Promise<GlobalMetrics> {
   const from = startOfDay(new Date());
   from.setDate(from.getDate() - (rangeDays - 1));
 
-  const labels = await getShiftTypeLabels();
+  const labels = await getShiftTypeLabels(branchId);
+  const scope = branchId ? { branchId } : {};
   const [workers, shifts, todayShifts, pendingConfirmation] = await Promise.all([
     prisma.user.findMany({
-      where: { role: "worker", active: true },
+      where: { role: "worker", active: true, ...scope },
       select: { id: true, name: true, department: true },
     }),
     prisma.shift.findMany({
-      where: { date: { gte: from } },
+      where: { ...scope, date: { gte: from } },
       include: { user: { select: { id: true, name: true, department: true } } },
     }),
     prisma.shift.findMany({
       where: {
+        ...scope,
         date: {
           gte: startOfDay(new Date()),
           lt: (() => {
@@ -139,7 +145,7 @@ export async function getGlobalMetrics(rangeDays = 30): Promise<GlobalMetrics> {
       select: { userId: true },
     }),
     prisma.shift.count({
-      where: { date: { gte: from }, status: "asignado" },
+      where: { ...scope, date: { gte: from }, status: "asignado" },
     }),
   ]);
 

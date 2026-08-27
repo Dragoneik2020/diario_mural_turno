@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireUser();
+    const session = await requireUser();
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get("days") || "7", 10);
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     end.setDate(end.getDate() + days);
 
     const shifts = await prisma.shift.findMany({
-      where: { date: { gte: start, lt: end } },
+      where: { date: { gte: start, lt: end }, ...branchWhere(session) },
       include: { user: { select: { id: true, name: true, department: true } } },
       orderBy: [{ date: "asc" }, { start: "asc" }],
     });

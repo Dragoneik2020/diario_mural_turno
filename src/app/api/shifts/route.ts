@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/session";
+import { requireUser, canManageRole, branchWhere } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +33,11 @@ export async function GET(req: NextRequest) {
     const to = searchParams.get("to");
     const userIdParam = searchParams.get("userId");
 
-    const where: any = {};
+    const where: any = { ...branchWhere(session) };
     if (from) where.date = { ...(where.date || {}), gte: new Date(from) };
     if (to) where.date = { ...(where.date || {}), lte: new Date(to) };
 
-    if (session.role === "admin") {
+    if (canManageRole(session.role)) {
       if (userIdParam) where.userId = userIdParam;
     } else {
       where.userId = session.id;
@@ -63,9 +63,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = shiftSchema.parse(body);
 
+    const isManager = canManageRole(session.role);
+
     let userId = session.id;
-    if (session.role === "admin" && parsed.userId) {
-      userId = parsed.userId;
+    let branchId = session.branchId ?? null;
+    if (isManager && parsed.userId) {
+      const target = await prisma.user.findUnique({
+        where: { id: parsed.userId },
+        select: { id: true, branchId: true },
+      });
+      if (!target)
+        return NextResponse.json({ error: "Trabajador no encontrado" }, { status: 404 });
+      if (session.role !== "superadmin" && target.branchId !== session.branchId) {
+        return NextResponse.json(
+          { error: "Solo puedes asignar turnos a tu sucursal" },
+          { status: 403 }
+        );
+      }
+      userId = target.id;
+      branchId = target.branchId ?? session.branchId ?? null;
     }
 
     const start = combine(parsed.date, parsed.start);
@@ -80,12 +96,13 @@ export async function POST(req: NextRequest) {
     const shift = await prisma.shift.create({
       data: {
         userId,
+        branchId,
         date: start,
         start,
         end,
         type: parsed.type as string,
         name: parsed.name,
-        status: session.role === "admin" && parsed.userId ? "asignado" : "confirmado",
+        status: isManager && parsed.userId ? "asignado" : "confirmado",
         notes: parsed.notes,
       },
       include: { user: { select: { id: true, name: true, department: true } } },

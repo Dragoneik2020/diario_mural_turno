@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
+import { requireAdmin, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +10,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
+    const target = await prisma.poll.findFirst({
+      where: { id: params.id, ...branchWhere(session) },
+      select: { id: true },
+    });
+    if (!target)
+      return NextResponse.json({ error: "Encuesta no encontrada" }, { status: 404 });
     await prisma.poll.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {

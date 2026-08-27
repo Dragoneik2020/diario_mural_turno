@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,9 @@ export async function POST(
     const body = await req.json();
     const parsed = voteSchema.parse(body);
 
-    const poll = await prisma.poll.findUnique({ where: { id: params.id } });
+    const poll = await prisma.poll.findFirst({
+      where: { id: params.id, ...branchWhere(session) },
+    });
     if (!poll || !poll.active)
       return NextResponse.json({ error: "Encuesta no disponible" }, { status: 404 });
 

@@ -89,7 +89,7 @@ export default function ShiftReports() {
       .then((r) => r.json())
       .then((d) => {
         const list: ReportUser[] = Array.isArray(d) ? d : d.users || [];
-        setUsers(list.filter((u) => u.role !== "admin"));
+        setUsers(list.filter((u) => u.role !== "admin" && u.role !== "superadmin"));
       });
   }, []);
 
