@@ -13,12 +13,12 @@ const TABS = [
 
 export default function AdminTopTabs({ current }: { current: string }) {
   return (
-    <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+    <div className="sticky top-14 z-10 flex gap-2 bg-slate-100 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
       {TABS.map((t) => (
         <Link
           key={t.href}
           href={t.href}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-lg transition ${
             current === t.href
               ? "bg-brand-600 text-white"
               : "text-slate-600 hover:bg-slate-200"
