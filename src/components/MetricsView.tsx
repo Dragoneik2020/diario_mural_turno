@@ -52,7 +52,7 @@ export default function MetricsView({
     <section className="card">
       <h2 className="font-semibold text-slate-800 mb-4">{title}</h2>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         {statCards.map((c) => (
           <div key={c.label} className="rounded-xl bg-brand-50 border border-brand-100 p-3 text-center">
             <div className="text-xl font-bold text-brand-700">{c.value}</div>

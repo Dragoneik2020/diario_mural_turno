@@ -3,7 +3,6 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGlobalMetrics } from "@/lib/metrics";
 import NavBar from "@/components/NavBar";
-import MetricsView from "@/components/MetricsView";
 import LlamadosPorTrabajador from "@/components/LlamadosPorTrabajador";
 import ShiftReports from "@/components/ShiftReports";
 import AdminStats from "@/components/AdminStats";
@@ -63,13 +62,6 @@ export default async function AdminPage() {
       }),
     ]);
 
-  const globalMetrics = {
-    totalHours: metrics.totalHours,
-    totalShifts: metrics.totalShifts,
-    daily: metrics.daily,
-    byType: metrics.byType,
-  };
-
   return (
     <div className="min-h-screen">
       <NavBar name={session.name} role={session.role} />
@@ -89,10 +81,8 @@ export default async function AdminPage() {
           todayShifts={todayShifts}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MetricsView metrics={globalMetrics} title="Métricas globales (30 días)" />
-          <section className="card">
-            <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>
+        <section className="card">
+          <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>
             <ul className="divide-y divide-slate-100 max-h-[28rem] overflow-auto">
               {boardShifts.length === 0 && (
                 <li className="text-sm text-slate-400">Sin turnos programados.</li>
@@ -110,7 +100,6 @@ export default async function AdminPage() {
               ))}
             </ul>
           </section>
-        </div>
 
         <ShiftReports />
       </main>

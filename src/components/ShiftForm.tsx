@@ -126,7 +126,7 @@ export default function ShiftForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Fecha</label>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />

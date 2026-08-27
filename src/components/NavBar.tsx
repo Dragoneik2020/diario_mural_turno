@@ -47,31 +47,33 @@ export default function NavBar({
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1">
-          {links.map((l) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto min-w-0">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium ${
+                  pathname === l.href
+                    ? "bg-brand-100 text-brand-700"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {l.label}
+              </Link>
+            ))}
             <Link
-              key={l.href}
-              href={l.href}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-                pathname === l.href
+              href="/perfil"
+              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium ${
+                pathname === "/perfil"
                   ? "bg-brand-100 text-brand-700"
                   : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              {l.label}
+              Mi perfil
             </Link>
-          ))}
-          <Link
-            href="/perfil"
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              pathname === "/perfil"
-                ? "bg-brand-100 text-brand-700"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            Mi perfil
-          </Link>
-          <div className="ml-2 flex items-center gap-2 pl-2 border-l border-slate-200">
+          </nav>
+          <div className="ml-2 flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
             <Avatar name={name} size="sm" className="hidden sm:flex" />
             <span className="text-sm text-slate-600 hidden sm:block">
               {name}
@@ -83,7 +85,7 @@ export default function NavBar({
               {busy ? "..." : "Salir"}
             </button>
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   );
