@@ -53,11 +53,13 @@ export default function WorkersManager({
   const [error, setError] = useState("");
   const [cargos, setCargos] = useState<string[]>([]);
   const [filterBranch, setFilterBranch] = useState(defaultBranchId);
+  const [busyAssign, setBusyAssign] = useState<string | null>(null);
 
-  const branchNames = Object.fromEntries(branches.map((b) => [b.id, b.name]));
-  const visible = filterBranch
-    ? list.filter((u) => u.branchId === filterBranch)
-    : list;
+  const visible = filterBranch === "__none__"
+    ? list.filter((u) => !u.branchId)
+    : filterBranch
+      ? list.filter((u) => u.branchId === filterBranch)
+      : list;
 
   const blank = {
     name: "",
@@ -155,6 +157,30 @@ export default function WorkersManager({
     router.refresh();
   }
 
+  async function assignBranch(u: WorkerRow, branchId: string) {
+    if (busyAssign) return;
+    setBusyAssign(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branchId: branchId || null }),
+      });
+      const ok = res.ok ? (await res.json().catch(() => null)) : null;
+      setList((prev) =>
+        prev.map((x) =>
+          x.id === u.id ? { ...x, branchId: branchId || null } : x
+        )
+      );
+      if (!ok) setError("No se pudo asignar la sucursal");
+    } catch {
+      setError("Error al asignar la sucursal");
+    } finally {
+      setBusyAssign(null);
+      router.refresh();
+    }
+  }
+
   return (
     <section className="card">
       <div className="flex items-center justify-between mb-4">
@@ -180,10 +206,17 @@ export default function WorkersManager({
             onChange={(e) => setFilterBranch(e.target.value)}
           >
             <option value="">Todas las sucursales</option>
+            <option value="__none__">Sin sucursal</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
+        </div>
+      )}
+
+      {error && !showForm && (
+        <div className="mb-3 rounded-xl border border-red-400/20 bg-red-500/10 px-3.5 py-2.5 text-sm text-[#fca5a5]">
+          {error}
         </div>
       )}
 
@@ -285,9 +318,21 @@ export default function WorkersManager({
                 </td>
                 {superadmin && (
                   <td className="py-2 pr-2">
-                    <span className={`badge ${u.branchId ? "bg-brand-100 text-brand-700" : ""}`}>
-                      {u.branchId ? branchNames[u.branchId] || "—" : "—"}
-                    </span>
+                    <select
+                      aria-label={`Sucursal de ${u.name}`}
+                      className="input !w-auto !px-2 !py-1 text-xs"
+                      value={u.branchId ?? ""}
+                      disabled={busyAssign === u.id}
+                      onChange={(e) => {
+                        setError("");
+                        assignBranch(u, e.target.value);
+                      }}
+                    >
+                      <option value="">— sin sucursal</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
                   </td>
                 )}
                 <td className="py-2 pr-2 text-slate-500">{u._count.shifts}</td>

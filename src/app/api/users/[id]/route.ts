@@ -20,7 +20,7 @@ const userUpdateSchema = z.object({
   department: z.string().optional(),
   cargo: z.string().optional(),
   active: z.boolean().optional(),
-  branchId: z.string().optional(),
+  branchId: z.string().optional().nullable(),
 });
 
 export async function PATCH(
@@ -51,8 +51,18 @@ export async function PATCH(
 
     if (parsed.role === "superadmin" && !isSuper)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
-    if (parsed.branchId && !isSuper)
-      delete (parsed as any).branchId;
+    if ("branchId" in parsed && !isSuper) delete (parsed as any).branchId;
+
+    if (isSuper && parsed.branchId) {
+      const branch = await prisma.branch.findUnique({
+        where: { id: parsed.branchId },
+      });
+      if (!branch)
+        return NextResponse.json(
+          { error: "Sucursal no encontrada" },
+          { status: 400 }
+        );
+    }
 
     // Un trabajador solo puede editar sus datos básicos.
     if (!isManager) {
@@ -64,6 +74,8 @@ export async function PATCH(
 
     const data: any = { ...parsed };
     if (parsed.password) data.password = await bcrypt.hash(parsed.password, 10);
+    if ("branchId" in parsed && isSuper)
+      data.branchId = parsed.branchId ? parsed.branchId : null;
 
     if (parsed.email) {
       const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
