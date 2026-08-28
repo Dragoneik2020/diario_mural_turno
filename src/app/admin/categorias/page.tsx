@@ -3,11 +3,11 @@ import { getSession } from "@/lib/auth";
 import { canManageRole, isSuperAdmin } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
-import ShiftTypeLabelsEditor from "@/components/ShiftTypeLabelsEditor";
+import DeptoCargoManager from "@/components/DeptoCargoManager";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSettingsPage() {
+export default async function CategoriasPage() {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!canManageRole(session.role)) redirect("/dashboard");
@@ -19,15 +19,20 @@ export default async function AdminSettingsPage() {
         role={session.role}
         branchName={session.branchName}
       />
-      <main className="mx-auto max-w-3xl px-4 py-6 space-y-6 rise">
+      <main className="mx-auto max-w-5xl px-4 py-6 space-y-6 rise">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ajustes</h1>
-          <p className="text-slate-500">Configuración general de la aplicación.</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Departamentos y cargos
+          </h1>
+          <p className="text-slate-500">
+            Administra las listas de departamentos y cargos que se usan al
+            registrar trabajadores.
+          </p>
         </div>
 
-        <AdminTopTabs current="/admin/ajustes" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/categorias" superadmin={isSuperAdmin(session)} />
 
-        <ShiftTypeLabelsEditor />
+        <DeptoCargoManager />
       </main>
     </div>
   );

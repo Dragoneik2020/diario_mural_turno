@@ -20,7 +20,7 @@ export default async function TrabajadoresPage({
 
   const superadmin = isSuperAdmin(session);
 
-  const [users, branches] = await Promise.all([
+  const [users] = await Promise.all([
     prisma.user.findMany({
       where: { ...branchWhere(session) },
       orderBy: { createdAt: "desc" },
@@ -36,13 +36,16 @@ export default async function TrabajadoresPage({
         _count: { select: { shifts: true } },
       },
     }),
-    superadmin
-      ? prisma.branch.findMany({
-          orderBy: { createdAt: "asc" },
-          select: { id: true, name: true },
-        })
-      : Promise.resolve([]),
   ]);
+
+  const branches = superadmin
+    ? await prisma.branch.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true },
+      })
+    : session.branchId
+      ? [{ id: session.branchId, name: session.branchName ?? "Mi sucursal" }]
+      : [];
 
   return (
     <div className="min-h-screen">
@@ -59,7 +62,7 @@ export default async function TrabajadoresPage({
           </a>
           <h1 className="text-2xl font-bold text-slate-900 mt-1">Trabajadores</h1>
           <p className="text-slate-500">
-            Gestiona nombre, email, departamento y rol de cada trabajador.
+            Gestiona nombre, email, sucursal, cargo y rol de cada trabajador.
           </p>
         </div>
 

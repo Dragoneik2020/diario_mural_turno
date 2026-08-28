@@ -20,6 +20,8 @@ export default function BranchManager() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -36,6 +38,69 @@ export default function BranchManager() {
   useEffect(() => {
     load();
   }, [load]);
+
+  function startEdit(b: BranchRow) {
+    setEditingId(b.id);
+    setEditName(b.name);
+    setError("");
+    setMsg("");
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    const v = editName.trim();
+    if (!v || !editingId || busy) return;
+    setBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/branches/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: v }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(d.error || "No se pudo renombrar la sucursal");
+        return;
+      }
+      setEditingId(null);
+      setMsg("Sucursal renombrada");
+      router.refresh();
+      load();
+    } catch {
+      setError("Error al renombrar la sucursal");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(b: BranchRow) {
+    if (
+      !confirm(
+        `¿Eliminar la sucursal "${b.name}"?\n\nSus trabajadores, turnos, anuncios y encuestas quedarán sin sucursal.`
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/branches/${b.id}`, { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(d.error || "No se pudo eliminar la sucursal");
+        return;
+      }
+      setMsg("Sucursal eliminada");
+      router.refresh();
+      load();
+    } catch {
+      setError("Error al eliminar la sucursal");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -98,18 +163,64 @@ export default function BranchManager() {
         <ul className="divide-y divide-slate-100">
           {branches.map((b) => (
             <li key={b.id} className="py-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="font-medium text-slate-800">{b.name}</div>
-                <div className="text-xs text-slate-400">
-                  {b._count.users} personas · {b._count.shifts} turnos
-                </div>
+              <div className="flex-1 min-w-0">
+                {editingId === b.id ? (
+                  <form onSubmit={saveEdit} className="flex gap-2">
+                    <input
+                      className="input !py-1 text-sm"
+                      value={editName}
+                      autoFocus
+                      onChange={(e) => setEditName(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-primary px-3 py-1 text-xs shrink-0"
+                      disabled={busy}
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost px-2 py-1 text-xs shrink-0"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <div className="font-medium text-slate-800">{b.name}</div>
+                    <div className="text-xs text-slate-400">
+                      {b._count.users} personas · {b._count.shifts} turnos
+                    </div>
+                  </>
+                )}
               </div>
-              <a
-                href={`/admin/trabajadores?sucursal=${b.id}`}
-                className="btn-ghost px-3 py-1.5 text-xs shrink-0"
-              >
-                Gestionar gente
-              </a>
+              <div className="flex items-center gap-2 shrink-0">
+                {editingId !== b.id && (
+                  <>
+                    <button
+                      onClick={() => startEdit(b)}
+                      className="text-xs text-brand-600 hover:underline"
+                    >
+                      Renombrar
+                    </button>
+                    <button
+                      onClick={() => remove(b)}
+                      disabled={busy}
+                      className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                    >
+                      Eliminar
+                    </button>
+                  </>
+                )}
+                <a
+                  href={`/admin/trabajadores?sucursal=${b.id}`}
+                  className="btn-ghost px-3 py-1.5 text-xs shrink-0"
+                >
+                  Gestionar gente
+                </a>
+              </div>
             </li>
           ))}
         </ul>

@@ -5,6 +5,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/admin", label: "Panel" },
   { href: "/admin/trabajadores", label: "Trabajadores" },
+  { href: "/admin/categorias", label: "Deptos. y cargos" },
   { href: "/admin/turnos", label: "Gestión de turnos" },
   { href: "/admin/muro", label: "Muro" },
   { href: "/admin/notificaciones", label: "Notificaciones" },

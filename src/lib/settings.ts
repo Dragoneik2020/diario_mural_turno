@@ -14,6 +14,14 @@ export const DEFAULT_CARGOS: string[] = [
   "Administrativo",
 ];
 
+export const DEFAULT_DEPARTAMENTOS: string[] = [
+  "Medicina",
+  "Urgencias",
+  "Pabellón",
+  "UCI",
+  "Pediatría",
+];
+
 async function getSetting(key: string, branchId?: string | null) {
   const b = branchId || GLOBAL_BRANCH_ID;
   const rows = await prisma.setting.findMany({
@@ -50,6 +58,20 @@ export async function getCargos(branchId?: string | null): Promise<string[]> {
     return [...DEFAULT_CARGOS];
   } catch {
     return [...DEFAULT_CARGOS];
+  }
+}
+
+export async function getDepartamentos(branchId?: string | null): Promise<string[]> {
+  const row = await getSetting("departamentos", branchId);
+  if (!row) return [...DEFAULT_DEPARTAMENTOS];
+  try {
+    const parsed = JSON.parse(row.value);
+    if (Array.isArray(parsed) && parsed.every((x) => typeof x === "string")) {
+      return parsed;
+    }
+    return [...DEFAULT_DEPARTAMENTOS];
+  } catch {
+    return [...DEFAULT_DEPARTAMENTOS];
   }
 }
 

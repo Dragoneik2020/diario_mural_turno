@@ -52,6 +52,7 @@ export default function WorkersManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [cargos, setCargos] = useState<string[]>([]);
+  const [departamentos, setDepartamentos] = useState<string[]>([]);
   const [filterBranch, setFilterBranch] = useState(defaultBranchId);
   const [busyAssign, setBusyAssign] = useState<string | null>(null);
 
@@ -78,6 +79,10 @@ export default function WorkersManager({
       .then((r) => r.json())
       .then((d) => setCargos(Array.isArray(d.cargos) ? d.cargos : []))
       .catch(() => setCargos([]));
+    fetch("/api/settings/departamentos")
+      .then((r) => r.json())
+      .then((d) => setDepartamentos(Array.isArray(d.departamentos) ? d.departamentos : []))
+      .catch(() => setDepartamentos([]));
   }, []);
 
   function openCreate() {
@@ -237,7 +242,12 @@ export default function WorkersManager({
             </div>
             <div>
               <label className="label">Departamento</label>
-              <input className="input" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <select className="input" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                <option value="">—</option>
+                {departamentos.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Cargo</label>
@@ -290,10 +300,9 @@ export default function WorkersManager({
             <tr className="text-left text-slate-500 border-b border-slate-200">
               <th className="py-2 pr-2">Nombre</th>
               <th className="py-2 pr-2">Email</th>
-              <th className="py-2 pr-2">Depto.</th>
+              <th className="py-2 pr-2">Sucursal</th>
               <th className="py-2 pr-2">Cargo</th>
               <th className="py-2 pr-2">Rol</th>
-              {superadmin && <th className="py-2 pr-2">Sucursal</th>}
               <th className="py-2 pr-2">Turnos</th>
               <th className="py-2 pr-2">Estado</th>
               <th className="py-2"></th>
@@ -309,15 +318,8 @@ export default function WorkersManager({
                   </div>
                 </td>
                 <td className="py-2 pr-2 text-slate-500">{u.email}</td>
-                 <td className="py-2 pr-2 text-slate-500">{u.department || "—"}</td>
-                 <td className="py-2 pr-2 text-slate-500">{u.cargo || "—"}</td>
-                 <td className="py-2 pr-2">
-                  <span className={`badge ${isChooseable(u.role) ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"}`}>
-                    {roleLabel(u.role)}
-                  </span>
-                </td>
-                {superadmin && (
-                  <td className="py-2 pr-2">
+                <td className="py-2 pr-2">
+                  {superadmin ? (
                     <select
                       aria-label={`Sucursal de ${u.name}`}
                       className="input !w-auto !px-2 !py-1 text-xs"
@@ -333,8 +335,18 @@ export default function WorkersManager({
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
                     </select>
-                  </td>
-                )}
+                  ) : (
+                    <span className="text-slate-500">
+                      {branches.find((b) => b.id === u.branchId)?.name ?? "—"}
+                    </span>
+                  )}
+                </td>
+                <td className="py-2 pr-2 text-slate-500">{u.cargo || "—"}</td>
+                <td className="py-2 pr-2">
+                  <span className={`badge ${isChooseable(u.role) ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"}`}>
+                    {roleLabel(u.role)}
+                  </span>
+                </td>
                 <td className="py-2 pr-2 text-slate-500">{u._count.shifts}</td>
                 <td className="py-2 pr-2">
                   <button onClick={() => toggleActive(u)} className={`badge ${u.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
