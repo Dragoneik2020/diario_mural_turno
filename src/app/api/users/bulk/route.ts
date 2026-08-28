@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
+import { requireAdmin, isSuperAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
     const defaultPassword: string | undefined = body.defaultPassword;
-    const branchId = session.branchId ?? null;
+    const isSuper = isSuperAdmin(session);
+    const branchId =
+      isSuper && body.branchId ? body.branchId : session.branchId ?? null;
 
     const created: { email: string; name: string }[] = [];
     const errors: { email: string; error: string }[] = [];

@@ -105,8 +105,8 @@ export default function BranchManager() {
                 </div>
               </div>
               <a
-                href="/admin/trabajadores"
-                className="text-xs text-brand-600 hover:underline shrink-0"
+                href={`/admin/trabajadores?sucursal=${b.id}`}
+                className="btn-ghost px-3 py-1.5 text-xs shrink-0"
               >
                 Gestionar gente
               </a>

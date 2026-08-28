@@ -9,7 +9,11 @@ import { ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function TrabajadoresPage() {
+export default async function TrabajadoresPage({
+  searchParams,
+}: {
+  searchParams: { sucursal?: string };
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!canManageRole(session.role)) redirect("/dashboard");
@@ -61,7 +65,12 @@ export default async function TrabajadoresPage() {
 
         <AdminTopTabs current="/admin/trabajadores" superadmin={superadmin} />
 
-        <WorkersManager users={users} branches={branches} superadmin={superadmin} />
+        <WorkersManager
+          users={users}
+          branches={branches}
+          superadmin={superadmin}
+          defaultBranchId={superadmin ? searchParams?.sucursal ?? "" : ""}
+        />
       </main>
     </div>
   );

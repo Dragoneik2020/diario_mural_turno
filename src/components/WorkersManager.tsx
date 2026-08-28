@@ -38,10 +38,12 @@ export default function WorkersManager({
   users,
   branches = [],
   superadmin = false,
+  defaultBranchId = "",
 }: {
   users: WorkerRow[];
   branches?: BranchOpt[];
   superadmin?: boolean;
+  defaultBranchId?: string;
 }) {
   const router = useRouter();
   const [list, setList] = useState<WorkerRow[]>(users);
@@ -50,6 +52,12 @@ export default function WorkersManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [cargos, setCargos] = useState<string[]>([]);
+  const [filterBranch, setFilterBranch] = useState(defaultBranchId);
+
+  const branchNames = Object.fromEntries(branches.map((b) => [b.id, b.name]));
+  const visible = filterBranch
+    ? list.filter((u) => u.branchId === filterBranch)
+    : list;
 
   const blank = {
     name: "",
@@ -59,7 +67,7 @@ export default function WorkersManager({
     department: "",
     cargo: "",
     active: true,
-    branchId: branches[0]?.id ?? "",
+    branchId: defaultBranchId || branches[0]?.id || "",
   };
   const [form, setForm] = useState({ ...blank });
 
@@ -87,7 +95,7 @@ export default function WorkersManager({
       department: u.department || "",
       cargo: u.cargo || "",
       active: u.active,
-      branchId: u.branchId ?? branches[0]?.id ?? "",
+      branchId: u.branchId ?? defaultBranchId ?? branches[0]?.id ?? "",
     });
     setShowForm(true);
     setError("");
@@ -154,8 +162,30 @@ export default function WorkersManager({
         <button className="btn-primary px-3 py-1.5 text-sm" onClick={openCreate}>
           + Nuevo
         </button>
-        <BulkImport onDone={() => router.refresh()} />
+        <BulkImport
+          onDone={() => router.refresh()}
+          branches={branches}
+          superadmin={superadmin}
+          defaultBranchId={filterBranch || defaultBranchId}
+        />
       </div>
+
+      {superadmin && branches.length > 0 && (
+        <div className="mb-3">
+          <label className="sr-only" htmlFor="branch-filter">Filtrar por sucursal</label>
+          <select
+            id="branch-filter"
+            className="input max-w-xs text-xs"
+            value={filterBranch}
+            onChange={(e) => setFilterBranch(e.target.value)}
+          >
+            <option value="">Todas las sucursales</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={save} className="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
@@ -230,13 +260,14 @@ export default function WorkersManager({
               <th className="py-2 pr-2">Depto.</th>
               <th className="py-2 pr-2">Cargo</th>
               <th className="py-2 pr-2">Rol</th>
+              {superadmin && <th className="py-2 pr-2">Sucursal</th>}
               <th className="py-2 pr-2">Turnos</th>
               <th className="py-2 pr-2">Estado</th>
               <th className="py-2"></th>
             </tr>
           </thead>
           <tbody>
-            {list.map((u) => (
+            {visible.map((u) => (
               <tr key={u.id} className="border-b border-slate-100">
                 <td className="py-2 pr-2 font-medium text-slate-800">
                   <div className="flex items-center gap-2">
@@ -252,6 +283,13 @@ export default function WorkersManager({
                     {roleLabel(u.role)}
                   </span>
                 </td>
+                {superadmin && (
+                  <td className="py-2 pr-2">
+                    <span className={`badge ${u.branchId ? "bg-brand-100 text-brand-700" : ""}`}>
+                      {u.branchId ? branchNames[u.branchId] || "—" : "—"}
+                    </span>
+                  </td>
+                )}
                 <td className="py-2 pr-2 text-slate-500">{u._count.shifts}</td>
                 <td className="py-2 pr-2">
                   <button onClick={() => toggleActive(u)} className={`badge ${u.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
@@ -273,6 +311,18 @@ export default function WorkersManager({
       </div>
       {list.length === 0 && (
         <EmptyState icon={Users} title="No hay trabajadores" hint="Añade el primero con el botón Nuevo." />
+      )}
+      {list.length > 0 && visible.length === 0 && (
+        <EmptyState
+          icon={Users}
+          title="Sin trabajadores en esta sucursal"
+          hint="Cambia el filtro de sucursal o crea uno nuevo."
+          action={
+            <button className="btn-ghost text-xs" onClick={() => setFilterBranch("")}>
+              Ver todas
+            </button>
+          }
+        />
       )}
     </section>
   );

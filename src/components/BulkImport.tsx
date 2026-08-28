@@ -7,6 +7,9 @@ import { X } from "lucide-react";
 
 interface Props {
   onDone: () => void;
+  branches?: { id: string; name: string }[];
+  superadmin?: boolean;
+  defaultBranchId?: string;
 }
 
 interface PreviewRow {
@@ -27,10 +30,11 @@ function normalize(s: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-export default function BulkImport({ onDone }: Props) {
+export default function BulkImport({ onDone, branches = [], superadmin = false, defaultBranchId = "" }: Props) {
   const [open, setOpen] = useState(false);
   const [defaultPassword, setDefaultPassword] = useState("");
   const [defaultRole, setDefaultRole] = useState("worker");
+  const [branchId, setBranchId] = useState(defaultBranchId);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -129,7 +133,11 @@ export default function BulkImport({ onDone }: Props) {
       const res = await fetch("/api/users/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, defaultPassword: defaultPassword || undefined }),
+        body: JSON.stringify({
+          items,
+          defaultPassword: defaultPassword || undefined,
+          ...(superadmin && branchId ? { branchId } : {}),
+        }),
       });
       const data = await res.json();
       setResult(data);
@@ -180,6 +188,17 @@ export default function BulkImport({ onDone }: Props) {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+              {superadmin && branches.length > 0 && (
+                <div>
+                  <label className="label">Sucursal destino</label>
+                  <select className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+                    <option value="">Sin asignar</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 mb-3">
