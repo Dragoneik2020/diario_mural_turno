@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 const GLOBAL = "global";
+const SEED_DEMO = process.env.SEED_DEMO === "true";
 
 async function main() {
   const adminPassword = await bcrypt.hash("admin123", 10);
@@ -67,20 +68,114 @@ async function main() {
     { name: "Pedro Sánchez", email: "pedro@demo.com", department: "Almacén", cargo: "Técnico", branchId: norte.id },
   ];
 
-  for (const w of workers) {
-    await prisma.user.upsert({
-      where: { email: w.email },
-      update: { role: "worker", branchId: w.branchId },
-      create: {
-        name: w.name,
-        email: w.email,
-        password: workerPassword,
-        role: "worker",
-        department: w.department,
-        cargo: w.cargo,
-        branchId: w.branchId,
-      },
-    });
+  const announcementExamples = [
+    {
+      content:
+        "📢 Recordatorio: la nueva rotación de turnos entra en vigor el lunes. Revisad el calendario y avisad si hay conflictos.",
+      pinned: true,
+    },
+    {
+      content:
+        "☕ La máquina de café del almacén está arreglada. ¡Gracias por vuestra paciencia!",
+      pinned: false,
+    },
+  ];
+
+  const pollExamples = [
+    {
+      question: "¿Qué día preferís para la próxima formación de seguridad?",
+      options: ["Lunes", "Miércoles", "Viernes"],
+    },
+    {
+      question: "¿Estáis de acuerdo con ampliar el descanso a 30 minutos?",
+      options: ["Sí, totalmente", "No, está bien así"],
+    },
+  ];
+
+  if (SEED_DEMO) {
+    for (const w of workers) {
+      await prisma.user.upsert({
+        where: { email: w.email },
+        update: { role: "worker", branchId: w.branchId },
+        create: {
+          name: w.name,
+          email: w.email,
+          password: workerPassword,
+          role: "worker",
+          department: w.department,
+          cargo: w.cargo,
+          branchId: w.branchId,
+        },
+      });
+    }
+
+    // Turnos de ejemplo solo si no hay turnos recientes (evita acumular en cada deploy).
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(now.getDate() - 7);
+    const recent = await prisma.shift.count({ where: { date: { gte: weekAgo } } });
+
+    if (recent === 0) {
+      const allWorkers = await prisma.user.findMany({ where: { role: "worker" } });
+      const types = ["manana", "tarde", "noche", "completo"] as const;
+
+      for (const worker of allWorkers) {
+        for (let d = 6; d >= 0; d--) {
+          const day = new Date(now);
+          day.setDate(now.getDate() - d);
+          const type = types[(d + worker.name.length) % types.length];
+          const startHour = type === "manana" ? 8 : type === "tarde" ? 14 : type === "noche" ? 22 : 9;
+          const duration = type === "completo" ? 8 : type === "noche" ? 8 : 6;
+
+          const start = new Date(day);
+          start.setHours(startHour, 0, 0, 0);
+          const end = new Date(start);
+          end.setHours(startHour + duration, 0, 0, 0);
+
+          await prisma.shift.create({
+            data: {
+              userId: worker.id,
+              branchId: worker.branchId ?? null,
+              date: start,
+              start,
+              end,
+              type,
+              notes: d === 0 ? "Turno de ejemplo" : undefined,
+            },
+          });
+        }
+      }
+    }
+
+    const existingAnns = await prisma.announcement.count();
+    if (existingAnns === 0) {
+      for (const a of announcementExamples) {
+        await prisma.announcement.create({
+          data: {
+            authorId: adminCentral.id,
+            branchId: central.id,
+            content: a.content,
+            pinned: a.pinned,
+          },
+        });
+      }
+    }
+
+    const existingPolls = await prisma.poll.count();
+    if (existingPolls === 0) {
+      for (const p of pollExamples) {
+        await prisma.poll.create({
+          data: {
+            authorId: adminCentral.id,
+            branchId: central.id,
+            question: p.question,
+            options: {
+              create: p.options.map((label, i) => ({ label, order: i })),
+            },
+          },
+        });
+      }
+    }
   }
 
   // Backfill: los usuarios legacy (sin sucursal) quedan en la Central.
@@ -108,96 +203,6 @@ async function main() {
     where: { branchId: null },
     data: { branchId: central.id },
   });
-
-  // Turnos de ejemplo solo si no hay turnos recientes (evita acumular en cada deploy).
-  const now = new Date();
-  const weekAgo = new Date(now);
-  weekAgo.setDate(now.getDate() - 7);
-  const recent = await prisma.shift.count({ where: { date: { gte: weekAgo } } });
-
-  if (recent === 0) {
-    const allWorkers = await prisma.user.findMany({ where: { role: "worker" } });
-    const types = ["manana", "tarde", "noche", "completo"] as const;
-
-    for (const worker of allWorkers) {
-      for (let d = 6; d >= 0; d--) {
-        const day = new Date(now);
-        day.setDate(now.getDate() - d);
-        const type = types[(d + worker.name.length) % types.length];
-        const startHour = type === "manana" ? 8 : type === "tarde" ? 14 : type === "noche" ? 22 : 9;
-        const duration = type === "completo" ? 8 : type === "noche" ? 8 : 6;
-
-        const start = new Date(day);
-        start.setHours(startHour, 0, 0, 0);
-        const end = new Date(start);
-        end.setHours(startHour + duration, 0, 0, 0);
-
-        await prisma.shift.create({
-          data: {
-            userId: worker.id,
-            branchId: worker.branchId ?? null,
-            date: start,
-            start,
-            end,
-            type,
-            notes: d === 0 ? "Turno de ejemplo" : undefined,
-          },
-        });
-      }
-    }
-  }
-
-  const existingAnns = await prisma.announcement.count();
-  if (existingAnns === 0) {
-    await prisma.announcement.create({
-      data: {
-        authorId: adminCentral.id,
-        branchId: central.id,
-        content:
-          "📢 Recordatorio: la nueva rotación de turnos entra en vigor el lunes. Revisad el calendario y avisad si hay conflictos.",
-        pinned: true,
-      },
-    });
-    await prisma.announcement.create({
-      data: {
-        authorId: adminCentral.id,
-        branchId: central.id,
-        content:
-          "☕ La máquina de café del almacén está arreglada. ¡Gracias por vuestra paciencia!",
-      },
-    });
-  }
-
-  const existingPolls = await prisma.poll.count();
-  if (existingPolls === 0) {
-    await prisma.poll.create({
-      data: {
-        authorId: adminCentral.id,
-        branchId: central.id,
-        question: "¿Qué día preferís para la próxima formación de seguridad?",
-        options: {
-          create: [
-            { label: "Lunes", order: 0 },
-            { label: "Miércoles", order: 1 },
-            { label: "Viernes", order: 2 },
-          ],
-        },
-      },
-    });
-    await prisma.poll.create({
-      data: {
-        authorId: adminCentral.id,
-        branchId: central.id,
-        question: "¿Estáis de acuerdo con ampliar el descanso a 30 minutos?",
-        options: {
-          create: [
-            { label: "Sí, totalmente", order: 0 },
-            { label: "No, está bien así", order: 1 },
-          ],
-        },
-      },
-    });
-  }
 
   await prisma.setting.upsert({
     where: { branchId_key: { branchId: GLOBAL, key: "shiftTypeLabels" } },
@@ -248,7 +253,8 @@ async function main() {
   console.log("Super Admin: admin@demo.com / admin123");
   console.log("Admin Central: central@demo.com / admin123");
   console.log("Admin Norte: norte@demo.com / admin123");
-  console.log("Trabajadores: ana@demo.com, carlos@demo.com, maria@demo.com, javier@demo.com, lucia@demo.com, pedro@demo.com / trabajador123");
+  if (SEED_DEMO)
+    console.log("Trabajadores demo: ana@demo.com, carlos@demo.com, maria@demo.com, javier@demo.com, lucia@demo.com, pedro@demo.com / trabajador123");
 }
 
 main()
