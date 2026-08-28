@@ -41,10 +41,10 @@ export default function NavBar({
   }
 
   return (
-    <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
+    <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050510]/70 backdrop-blur-xl">
       <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-2">
-        <Link href="/" className="flex items-center gap-2 font-bold text-slate-900 tracking-tight">
-          <span className="h-8 w-8 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-soft">
+        <Link href="/" className="flex items-center gap-2 font-display font-bold text-white tracking-tight">
+          <span className="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-white flex items-center justify-center shadow-glow">
             <Calendar className="h-5 w-5" />
           </span>
           <span className="hidden sm:block">
@@ -58,10 +58,10 @@ export default function NavBar({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium ${
+                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
                   pathname === l.href
-                    ? "bg-brand-100 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
+                    : "text-slate-300 hover:bg-white/10"
                 }`}
               >
                 {l.label}
@@ -69,25 +69,25 @@ export default function NavBar({
             ))}
             <Link
               href="/perfil"
-              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium ${
+              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
                 pathname === "/perfil"
-                  ? "bg-brand-100 text-brand-700"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
+                  : "text-slate-300 hover:bg-white/10"
               }`}
             >
               Mi perfil
             </Link>
           </nav>
-          <div className="ml-2 flex items-center gap-2 pl-2 border-l border-slate-200 shrink-0">
+          <div className="ml-2 flex items-center gap-2 pl-2 border-l border-white/10 shrink-0">
             <Avatar name={name} size="sm" className="hidden sm:flex" />
-            <span className="text-sm text-slate-600 hidden sm:block">
+            <span className="text-sm text-slate-200 hidden sm:block">
               {name}
               {roleLabel && (
                 <span
                   className={`badge ml-1 ${
                     role === "superadmin"
-                      ? "bg-rose-100 text-rose-700"
-                      : "bg-brand-100 text-brand-700"
+                      ? "!bg-rose-100 !text-rose-700"
+                      : "!bg-brand-100 !text-brand-700"
                   }`}
                 >
                   {roleLabel}
@@ -99,7 +99,7 @@ export default function NavBar({
                 </span>
               )}
             </span>
-            <button onClick={logout} disabled={busy} className="btn-ghost px-3 py-1.5">
+            <button onClick={logout} disabled={busy} className="btn-primary !px-3 !py-1.5">
               {busy ? "..." : "Salir"}
             </button>
           </div>

@@ -129,7 +129,7 @@ export default function AdminStats({
       </div>
 
       {open && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft rise max-h-[70vh] overflow-auto">
+        <div className="card rise max-h-[70vh] overflow-auto">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">
                 {open === "workers" && "Trabajadores"}

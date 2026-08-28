@@ -17,6 +17,13 @@ const mono = localFont({
   display: "swap",
 });
 
+const display = localFont({
+  src: "./fonts/space-grotesk-latin.woff2",
+  weight: "300 700",
+  variable: "--font-display",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: process.env.NEXT_PUBLIC_APP_NAME || "Diario de Turnos",
@@ -29,7 +36,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1d57f5",
+  themeColor: "#050510",
 };
 
 export const dynamic = "force-dynamic";
@@ -40,8 +47,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${jakarta.variable} ${mono.variable}`}>
-      <body className="font-sans text-slate-900">
+    <html lang="es" className={`${jakarta.variable} ${mono.variable} ${display.variable}`}>
+      <body className="font-sans text-slate-100">
         <ShiftTypeLabelsProvider>{children}</ShiftTypeLabelsProvider>
       </body>
     </html>

@@ -8,16 +8,16 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#eef5ff",
-          100: "#d9e8ff",
-          200: "#bcd6ff",
-          300: "#8ebcff",
-          400: "#5996fb",
-          500: "#3377f5",
-          600: "#1d57f5",
-          700: "#1643e1",
-          800: "#1a3bbf",
-          900: "#1d369a",
+          50: "#eef2ff",
+          100: "#e0e7ff",
+          200: "#c7d2fe",
+          300: "#a5b4fc",
+          400: "#818cf8",
+          500: "#6366f1",
+          600: "#4f46e5",
+          700: "#4338ca",
+          800: "#3730a3",
+          900: "#312e81",
         },
       },
       fontFamily: {
@@ -25,11 +25,17 @@ const config: Config = {
           "var(--font-geist-sans)",
           "ui-sans-serif",
           "system-ui",
-          "-apple-system",
           "Segoe UI",
           "Roboto",
           "Helvetica",
           "Arial",
+          "sans-serif",
+        ],
+        display: [
+          "var(--font-display)",
+          "var(--font-geist-sans)",
+          "ui-sans-serif",
+          "system-ui",
           "sans-serif",
         ],
         mono: [
@@ -41,8 +47,9 @@ const config: Config = {
         ],
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(15,23,42,0.04), 0 6px 20px -8px rgba(15,23,42,0.12)",
-        lift: "0 2px 4px rgba(15,23,42,0.05), 0 14px 34px -12px rgba(15,23,42,0.20)",
+        soft: "0 1px 2px rgba(0,0,0,0.4), 0 6px 20px -8px rgba(0,0,0,0.5)",
+        lift: "0 2px 4px rgba(0,0,0,0.45), 0 14px 34px -12px rgba(0,0,0,0.55)",
+        glow: "0 0 0 1px rgba(99,102,241,.18), 0 12px 40px -8px rgba(99,102,241,.45)",
       },
       borderRadius: {
         "2xl": "1rem",

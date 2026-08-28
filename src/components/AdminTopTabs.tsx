@@ -22,15 +22,15 @@ export default function AdminTopTabs({
     ? [...TABS.slice(0, 2), { href: "/admin/sucursales", label: "Sucursales" }, ...TABS.slice(2)]
     : TABS;
   return (
-    <div className="sticky top-14 z-10 flex gap-2 bg-slate-100 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
+    <div className="sticky top-14 z-10 flex gap-1.5 w-fit max-w-full overflow-x-auto rounded-full border border-white/10 bg-white/[0.05] p-1 backdrop-blur-xl">
       {tabs.map((t) => (
         <Link
           key={t.href}
           href={t.href}
-          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-lg transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
             current === t.href
-              ? "bg-brand-600 text-white"
-              : "text-slate-600 hover:bg-slate-200"
+              ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
+              : "text-slate-300 hover:bg-white/10"
           }`}
         >
           {t.label}

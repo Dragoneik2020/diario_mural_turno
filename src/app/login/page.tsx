@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CalendarCheck } from "lucide-react";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Diario de Turnos";
@@ -38,50 +39,52 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex rise">
-      <div className="hidden lg:flex w-1/2 bg-brand-600 text-white flex-col justify-between p-12 relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"
+    <main className="relative min-h-screen overflow-hidden bg-[#050510] text-slate-100">
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <img
+          src="https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1600&q=80"
+          alt=""
+          className="h-full w-full object-cover opacity-20 saturate-150"
         />
-        <div className="relative flex items-center gap-3">
-          <span className="h-11 w-11 rounded-2xl bg-white/15 flex items-center justify-center">
-            <CalendarCheck className="h-6 w-6" />
-          </span>
-          <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
-        </div>
-        <div className="relative">
-          <h2 className="text-3xl font-bold leading-tight tracking-tight">
-            El diario mural de turnos de tu equipo
-          </h2>
-          <p className="mt-4 text-brand-100 max-w-sm">
-            Planifica, asigna y comunica los turnos en un solo lugar. Tus
-            trabajadores, siempre informados.
-          </p>
-        </div>
-        <div className="relative text-sm text-brand-200">
-          © {new Date().getFullYear()} · Demo
-        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_30%,rgba(99,102,241,0.15)_0%,transparent_60%),linear-gradient(180deg,rgba(5,5,16,0.2)_0%,#050510_100%)]" />
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 py-10 bg-slate-50">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-8 flex items-center gap-2 text-brand-700 font-bold text-lg">
-            <span className="h-9 w-9 rounded-xl bg-brand-600 text-white flex items-center justify-center">
-              <CalendarCheck className="h-5 w-5" />
-            </span>
-            {APP_NAME}
+      <Link
+        href="/"
+        className="fixed left-5 top-5 z-20 rounded-full border border-white/10 bg-white/[0.06] px-3.5 py-2 text-xs font-medium text-white backdrop-blur-xl transition hover:bg-white/10"
+      >
+        ← Volver al inicio
+      </Link>
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center p-6 rise">
+        <div className="w-full max-w-[400px] rounded-3xl border border-white/[0.08] bg-white/[0.04] p-9 shadow-[0_20px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+          <div className="mb-7 flex flex-col items-center gap-3 text-center">
+            <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow">
+              <CalendarCheck className="h-9 w-9" />
+            </div>
+            <div>
+              <h1 className="font-display text-[1.3rem] font-bold text-white">
+                {APP_NAME}
+              </h1>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Panel de administración
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="card space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Email</label>
               <input
                 className="input"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+                placeholder="tu@correo.com"
+                autoComplete="username"
                 required
               />
             </div>
@@ -91,41 +94,48 @@ export default function LoginPage() {
                 className="input"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
               />
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 text-red-700 text-sm px-3 py-2 border border-red-200">
+              <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-3.5 py-2.5 text-xs text-[#fca5a5]">
                 {error}
               </div>
             )}
 
-            <button type="submit" className="btn-primary w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+            <button
+              type="submit"
+              className="w-full rounded-full bg-gradient-to-br from-brand-500 to-brand-600 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:-translate-y-px hover:shadow-[0_0_30px_rgba(99,102,241,0.35)] disabled:opacity-60"
+              disabled={loading}
+            >
+              {loading ? "Verificando..." : "Entrar →"}
             </button>
           </form>
 
-          <div className="mt-6 text-xs text-slate-500 card">
-            <p className="font-semibold text-slate-600 mb-1">Cuentas de demostración</p>
-            <p>
-              <span className="badge bg-rose-100 text-rose-700 mr-1">Super Admin</span>{" "}
-              admin@demo.com / admin123
-            </p>
-            <p>
-              <span className="badge bg-brand-100 text-brand-700 mr-1">Admin Central</span>{" "}
-              central@demo.com / admin123
-            </p>
-            <p>
-              <span className="badge bg-brand-100 text-brand-700 mr-1">Admin Norte</span>{" "}
-              norte@demo.com / admin123
-            </p>
-            <p>
-              <span className="badge bg-slate-100 text-slate-600 mr-1">Trabajador</span>{" "}
-              ana@demo.com / trabajador123
-            </p>
+          <div className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-slate-400">
+            <strong className="text-slate-100">Cuentas de demostración</strong>
+            <br />
+            <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
+              Super Admin
+            </span>
+            admin@demo.com / admin123
+            <br />
+            <span className="badge !border-brand-400/30 !bg-brand-100 !text-brand-700 mr-1">
+              Admin
+            </span>
+            central@demo.com / admin123
+            <br />
+            <span className="badge !border-slate-400/30 !bg-slate-100 !text-slate-300 mr-1">
+              Trabajador
+            </span>
+            ana@demo.com / trabajador123
           </div>
         </div>
       </div>
