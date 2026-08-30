@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { canManageRole, isSuperAdmin } from "@/lib/session";
+import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import EmailNotificationsEditor from "@/components/EmailNotificationsEditor";
@@ -25,7 +25,7 @@ export default async function NotificacionesPage() {
           <p className="text-slate-500">Configura cómo avisar a los trabajadores al asignarles turnos.</p>
         </div>
 
-        <AdminTopTabs current="/admin/notificaciones" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/notificaciones" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <EmailNotificationsEditor />
       </main>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSuperAdmin } from "@/lib/session";
+import { requireDios } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireSuperAdmin();
+    await requireDios();
     const orders = await prisma.order.findMany({
       where: { companyId: params.id },
       orderBy: { createdAt: "desc" },

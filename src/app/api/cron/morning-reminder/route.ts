@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     shiftsToday += shifts.length;
 
     for (const s of shifts) {
-      if (s.user.role === "admin" || s.user.role === "superadmin") continue;
+      if (s.user.role === "admin" || s.user.role === "superadmin" || s.user.role === "dios") continue;
       if (s.status === "cumplido") continue;
       await notifyShiftById(s.id, "morning");
       sent++;

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { canManageRole, isSuperAdmin } from "@/lib/session";
+import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import ShiftTypeLabelsEditor from "@/components/ShiftTypeLabelsEditor";
@@ -25,7 +25,7 @@ export default async function AdminSettingsPage() {
           <p className="text-slate-500">Configuración general de la aplicación.</p>
         </div>
 
-        <AdminTopTabs current="/admin/ajustes" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/ajustes" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <ShiftTypeLabelsEditor />
       </main>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canManageRole, branchWhere, isSuperAdmin } from "@/lib/session";
+import { canManageRole, branchWhere, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminShiftsTabs from "@/components/AdminShiftsTabs";
 import AdminTopTabs from "@/components/AdminTopTabs";
@@ -49,7 +49,7 @@ export default async function TurnosPage() {
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/turnos" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/turnos" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <AdminShiftsTabs shifts={shifts} users={users} />
       </main>

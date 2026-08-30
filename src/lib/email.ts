@@ -97,7 +97,7 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
       where: { id: shiftId },
       include: { user: { select: { name: true, email: true, cargo: true, role: true } } },
     });
-    if (!shift || shift.user.role === "admin" || shift.user.role === "superadmin") return;
+    if (!shift || shift.user.role === "admin" || shift.user.role === "superadmin" || shift.user.role === "dios") return;
     const labels = await getShiftTypeLabels(shift.branchId);
     await notifyShiftAssigned(
       { name: shift.user.name, email: shift.user.email, cargo: shift.user.cargo },

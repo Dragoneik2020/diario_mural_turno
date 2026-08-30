@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin, isSuperAdmin } from "@/lib/session";
+import { requireUser, requireAdmin, isMultiBranch, branchWhere } from "@/lib/session";
 import { DEFAULT_CARGOS, getCargos, GLOBAL_BRANCH_ID } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +10,23 @@ export async function GET(req: NextRequest) {
     const session = await requireUser();
     const { searchParams } = new URL(req.url);
     const requested = searchParams.get("branchId");
-    const branchId =
-      isSuperAdmin(session) && requested ? requested : session.branchId;
+
+    let branchId = session.branchId;
+    if (isMultiBranch(session) && requested) {
+      // El superadmin solo puede pedir sucursales de su empresa; dios cualquiera.
+      const allowed =
+        session.role !== "superadmin" ||
+        (
+          await prisma.branch.findFirst({
+            where: { id: requested, companyId: session.companyId ?? "__NONE__" },
+            select: { id: true },
+          })
+        ) !== null;
+      if (allowed) branchId = requested;
+    }
+
     const list = await getCargos(branchId);
-    const scope = isSuperAdmin(session) ? {} : { branchId: session.branchId };
+    const scope = { ...branchWhere(session) };
     const groups = await prisma.user.groupBy({
       by: ["cargo"],
       where: { cargo: { in: list }, ...scope },

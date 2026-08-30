@@ -5,7 +5,7 @@ import {
   getDepartamentos,
   GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
-import { requireUser, requireAdmin, isSuperAdmin } from "@/lib/session";
+import { requireUser, requireAdmin, branchWhere } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const session = await requireUser();
     const list = await getDepartamentos(session.branchId);
-    const scope = isSuperAdmin(session) ? {} : { branchId: session.branchId };
+    const scope = { ...branchWhere(session) };
     const groups = await prisma.user.groupBy({
       by: ["department"],
       where: { department: { in: list }, ...scope },

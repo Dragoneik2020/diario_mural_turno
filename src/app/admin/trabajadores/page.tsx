@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canManageRole, branchWhere, isSuperAdmin } from "@/lib/session";
+import { canManageRole, branchWhere, isDios, isMultiBranch, companyWhere } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import WorkersManager from "@/components/WorkersManager";
 import AdminTopTabs from "@/components/AdminTopTabs";
@@ -18,7 +18,7 @@ export default async function TrabajadoresPage({
   if (!session) redirect("/login");
   if (!canManageRole(session.role)) redirect("/dashboard");
 
-  const superadmin = isSuperAdmin(session);
+  const superadmin = isMultiBranch(session);
 
   const [users] = await Promise.all([
     prisma.user.findMany({
@@ -40,6 +40,7 @@ export default async function TrabajadoresPage({
 
   const branches = superadmin
     ? await prisma.branch.findMany({
+        where: { ...companyWhere(session) },
         orderBy: { createdAt: "asc" },
         select: { id: true, name: true },
       })
@@ -66,12 +67,13 @@ export default async function TrabajadoresPage({
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/trabajadores" superadmin={superadmin} />
+        <AdminTopTabs current="/admin/trabajadores" superadmin={superadmin} isDios={isDios(session)} />
 
         <WorkersManager
           users={users}
           branches={branches}
           superadmin={superadmin}
+          isDios={isDios(session)}
           defaultBranchId={superadmin ? searchParams?.sucursal ?? "" : ""}
         />
       </main>

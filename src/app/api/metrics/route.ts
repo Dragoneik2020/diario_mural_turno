@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, canManageRole } from "@/lib/session";
+import { requireUser, canManageRole, isSuperAdmin } from "@/lib/session";
 import { getPersonalMetrics, getGlobalMetrics } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,11 @@ export async function GET(req: NextRequest) {
     const range = parseInt(searchParams.get("range") || "30", 10);
 
     if (canManageRole(session.role)) {
-      const metrics = await getGlobalMetrics(range, session.branchId);
+      const metrics = await getGlobalMetrics(
+        range,
+        session.branchId,
+        isSuperAdmin(session) ? session.companyId : null
+      );
       return NextResponse.json({ scope: "global", metrics });
     } else {
       const metrics = await getPersonalMetrics(session.id, range, session.branchId);

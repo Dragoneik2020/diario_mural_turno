@@ -7,7 +7,7 @@ const secret = new TextEncoder().encode(
 export const SESSION_COOKIE = "dt_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-export type AppRole = "worker" | "admin" | "superadmin";
+export type AppRole = "worker" | "admin" | "superadmin" | "dios";
 
 export interface Session {
   id: string;

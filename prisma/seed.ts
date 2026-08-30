@@ -72,15 +72,28 @@ async function main() {
     create: { id: "branch-norte", name: "Sucursal Norte" },
   });
 
-  const superadmin = await prisma.user.upsert({
+  const dios = await prisma.user.upsert({
     where: { email: "admin@demo.com" },
-    update: { role: "superadmin", branchId: null },
+    update: { role: "dios", branchId: null },
     create: {
-      name: "Administrador General",
+      name: "Cuenta DIOS",
       email: "admin@demo.com",
+      password: adminPassword,
+      role: "dios",
+      department: "Dirección",
+    },
+  });
+
+  const superRincon = await prisma.user.upsert({
+    where: { email: "super@demo.com" },
+    update: { role: "superadmin", branchId: central.id },
+    create: {
+      name: "Super Admin Rincon-Z",
+      email: "super@demo.com",
       password: adminPassword,
       role: "superadmin",
       department: "Dirección",
+      branchId: central.id,
     },
   });
 
@@ -231,7 +244,7 @@ async function main() {
 
   // Backfill: los usuarios legacy (sin sucursal) quedan en la Central.
   await prisma.user.updateMany({
-    where: { branchId: null, role: { not: "superadmin" } },
+    where: { branchId: null, role: { notIn: ["superadmin", "dios"] } },
     data: { branchId: central.id },
   });
 
@@ -330,7 +343,8 @@ async function main() {
   });
 
   console.log("Seed completado.");
-  console.log("Super Admin: admin@demo.com / admin123");
+  console.log("Cuenta DIOS: admin@demo.com / admin123");
+  console.log("Super Admin (empresa): super@demo.com / admin123");
   console.log("Admin Central: central@demo.com / admin123");
   console.log("Admin Norte: norte@demo.com / admin123");
   console.log("Empresa demo: Rincon-Z (plan Empresa, dueña de las sucursales legacy)");

@@ -21,9 +21,15 @@ export default function NavBar({
   const pathname =
     typeof window !== "undefined" ? window.location.pathname : "";
 
-  const isManager = role === "admin" || role === "superadmin";
+  const isManager = role === "admin" || role === "superadmin" || role === "dios";
   const roleLabel =
-    role === "superadmin" ? "Super Admin" : role === "admin" ? "Admin" : null;
+    role === "dios"
+      ? "DIOS"
+      : role === "superadmin"
+        ? "Super Admin"
+        : role === "admin"
+          ? "Admin"
+          : null;
 
   const links: { href: string; label: string }[] = isManager
     ? [
@@ -85,9 +91,11 @@ export default function NavBar({
               {roleLabel && (
                 <span
                   className={`badge ml-1 ${
-                    role === "superadmin"
+                    role === "dios"
                       ? "!bg-rose-100 !text-rose-700"
-                      : "!bg-brand-100 !text-brand-700"
+                      : role === "superadmin"
+                        ? "!bg-amber-100 !text-amber-700"
+                        : "!bg-brand-100 !text-brand-700"
                   }`}
                 >
                   {roleLabel}

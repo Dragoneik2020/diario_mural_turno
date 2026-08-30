@@ -15,15 +15,24 @@ const TABS = [
 export default function AdminTopTabs({
   current,
   superadmin = false,
+  isDios = false,
 }: {
   current: string;
   superadmin?: boolean;
+  isDios?: boolean;
 }) {
-  const tabs = superadmin
+  const extra = isDios
     ? [
-        ...TABS.slice(0, 2),
         { href: "/admin/sucursales", label: "Sucursales" },
         { href: "/admin/empresas", label: "Empresas" },
+      ]
+    : superadmin
+      ? [{ href: "/admin/sucursales", label: "Sucursales" }]
+      : [];
+  const tabs = extra.length > 0
+    ? [
+        ...TABS.slice(0, 2),
+        ...extra,
         ...TABS.slice(2),
       ]
     : TABS;

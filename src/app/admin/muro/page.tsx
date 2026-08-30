@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { canManageRole, isSuperAdmin } from "@/lib/session";
+import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import MuralManager from "@/components/MuralManager";
 import AdminTopTabs from "@/components/AdminTopTabs";
@@ -32,7 +32,7 @@ export default async function MuroPage() {
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/muro" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/muro" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <MuralManager />
       </main>

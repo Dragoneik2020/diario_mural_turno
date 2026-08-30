@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { canManageRole, isSuperAdmin } from "@/lib/session";
+import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import DeptoCargoManager from "@/components/DeptoCargoManager";
@@ -30,7 +30,7 @@ export default async function CategoriasPage() {
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/categorias" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin/categorias" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <DeptoCargoManager />
       </main>

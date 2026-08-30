@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGlobalMetrics } from "@/lib/metrics";
-import { canManageRole, branchWhere, isSuperAdmin } from "@/lib/session";
+import { canManageRole, branchWhere, isSuperAdmin, isDios, isMultiBranch, companyWhere } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import LlamadosPorTrabajador from "@/components/LlamadosPorTrabajador";
 import ShiftReports from "@/components/ShiftReports";
@@ -45,7 +45,7 @@ export default async function AdminPage() {
           _count: { select: { shifts: true } },
         },
       }),
-      getGlobalMetrics(30, session.branchId),
+      getGlobalMetrics(30, session.branchId, isSuperAdmin(session) ? session.companyId : null),
       prisma.shift.findMany({
         where: { date: { gte: start, lt: end }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
@@ -67,6 +67,7 @@ export default async function AdminPage() {
         orderBy: { start: "asc" },
       }),
       prisma.branch.findMany({
+        where: { ...companyWhere(session) },
         orderBy: { createdAt: "asc" },
         select: { id: true, name: true },
       }),
@@ -83,13 +84,15 @@ export default async function AdminPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Panel de administración</h1>
           <p className="text-slate-500">
-            {isSuperAdmin(session)
-              ? "Vista global de todas las sucursales."
-              : `Sucursal: ${session.branchName ?? "—"}`}
+            {isDios(session)
+              ? "Vista DIOS: todas las empresas y sucursales."
+              : isSuperAdmin(session)
+                ? "Vista de super administrador: todas las sucursales de tu empresa."
+                : `Sucursal: ${session.branchName ?? "—"}`}
           </p>
         </div>
 
-        <AdminTopTabs current="/admin" superadmin={isSuperAdmin(session)} />
+        <AdminTopTabs current="/admin" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
 
         <AdminStats
           metrics={metrics}
@@ -101,7 +104,7 @@ export default async function AdminPage() {
 
         <TeamCalendar
           currentUserId={session.id}
-          superadmin={isSuperAdmin(session)}
+          superadmin={isMultiBranch(session)}
           branches={branches}
         />
 

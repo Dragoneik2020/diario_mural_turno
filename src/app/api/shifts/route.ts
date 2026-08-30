@@ -70,11 +70,17 @@ export async function POST(req: NextRequest) {
     if (isManager && parsed.userId) {
       const target = await prisma.user.findUnique({
         where: { id: parsed.userId },
-        select: { id: true, branchId: true },
+        select: { id: true, branchId: true, branch: { select: { companyId: true } } },
       });
       if (!target)
         return NextResponse.json({ error: "Trabajador no encontrado" }, { status: 404 });
-      if (session.role !== "superadmin" && target.branchId !== session.branchId) {
+      if (session.role === "superadmin" && target.branch?.companyId !== session.companyId) {
+        return NextResponse.json(
+          { error: "Solo puedes asignar turnos en tu empresa" },
+          { status: 403 }
+        );
+      }
+      if (session.role !== "superadmin" && session.role !== "dios" && target.branchId !== session.branchId) {
         return NextResponse.json(
           { error: "Solo puedes asignar turnos a tu sucursal" },
           { status: 403 }

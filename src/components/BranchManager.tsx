@@ -19,11 +19,15 @@ interface CompanyLite {
   plan: { name: string } | null;
 }
 
-export default function BranchManager() {
+export default function BranchManager({
+  autoCompany,
+}: {
+  autoCompany?: string;
+}) {
   const router = useRouter();
   const [branches, setBranches] = useState<BranchRow[]>([]);
   const [companies, setCompanies] = useState<CompanyLite[]>([]);
-  const [companyId, setCompanyId] = useState("");
+  const [companyId, setCompanyId] = useState(autoCompany ?? "");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +49,7 @@ export default function BranchManager() {
   }, []);
 
   const loadCompanies = useCallback(async () => {
+    if (autoCompany) return;
     try {
       const res = await fetch("/api/companies");
       const d = await res.json();
@@ -55,7 +60,7 @@ export default function BranchManager() {
     } catch {
       setCompanies([]);
     }
-  }, []);
+  }, [autoCompany]);
 
   useEffect(() => {
     load();

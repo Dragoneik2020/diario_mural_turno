@@ -31,7 +31,9 @@ export default function LoginPage() {
     }
     const { session } = await res.json();
     router.push(
-      session.role === "admin" || session.role === "superadmin"
+      session.role === "admin" ||
+        session.role === "superadmin" ||
+        session.role === "dios"
         ? "/admin"
         : "/dashboard"
     );
@@ -123,9 +125,14 @@ export default function LoginPage() {
             <strong className="text-slate-100">Cuentas de demostración</strong>
             <br />
             <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
-              Super Admin
+              DIOS
             </span>
             admin@demo.com / admin123
+            <br />
+            <span className="badge !border-amber-400/30 !bg-amber-100 !text-amber-700 mr-1">
+              Super Admin
+            </span>
+            super@demo.com / admin123
             <br />
             <span className="badge !border-brand-400/30 !bg-brand-100 !text-brand-700 mr-1">
               Admin

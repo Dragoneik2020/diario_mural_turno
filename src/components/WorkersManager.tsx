@@ -25,24 +25,27 @@ export interface BranchOpt {
 }
 
 function roleLabel(r: string): string {
+  if (r === "dios") return "DIOS";
   if (r === "superadmin") return "Super Admin";
   if (r === "admin") return "Admin";
   return "Trabajador";
 }
 
 function isChooseable(r: string): boolean {
-  return r === "admin" || r === "superadmin";
+  return r === "admin" || r === "superadmin" || r === "dios";
 }
 
 export default function WorkersManager({
   users,
   branches = [],
   superadmin = false,
+  isDios = false,
   defaultBranchId = "",
 }: {
   users: WorkerRow[];
   branches?: BranchOpt[];
   superadmin?: boolean;
+  isDios?: boolean;
   defaultBranchId?: string;
 }) {
   const router = useRouter();
@@ -263,7 +266,7 @@ export default function WorkersManager({
               <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })}>
                 <option value="worker">Trabajador</option>
                 <option value="admin">Admin</option>
-                {superadmin && <option value="superadmin">Super Admin</option>}
+                {isDios && <option value="superadmin">Super Admin (dueño de empresa)</option>}
               </select>
             </div>
             {superadmin && (

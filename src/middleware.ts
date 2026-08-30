@@ -15,7 +15,9 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/login") {
     return NextResponse.redirect(
       new URL(
-        session.role === "admin" || session.role === "superadmin"
+        session.role === "admin" ||
+          session.role === "superadmin" ||
+          session.role === "dios"
           ? "/admin"
           : "/dashboard",
         req.url
@@ -26,7 +28,8 @@ export async function middleware(req: NextRequest) {
   if (
     pathname.startsWith("/admin") &&
     session.role !== "admin" &&
-    session.role !== "superadmin"
+    session.role !== "superadmin" &&
+    session.role !== "dios"
   ) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }

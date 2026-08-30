@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, isSuperAdmin } from "@/lib/session";
+import { requireAdmin, isMultiBranch, writeBranchId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +21,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
     const defaultPassword: string | undefined = body.defaultPassword;
-    const isSuper = isSuperAdmin(session);
-    const branchId =
-      isSuper && body.branchId ? body.branchId : session.branchId ?? null;
+    const isSuper = isMultiBranch(session);
+    const branchId = writeBranchId(session, isSuper ? body.branchId : null);
+
+    if (branchId && session.role === "superadmin") {
+      const branch = await prisma.branch.findFirst({
+        where: { id: branchId, companyId: session.companyId ?? "__NONE__" },
+      });
+      if (!branch)
+        return NextResponse.json({ error: "Sucursal fuera de tu empresa" }, { status: 403 });
+    }
 
     const created: { email: string; name: string }[] = [];
     const errors: { email: string; error: string }[] = [];

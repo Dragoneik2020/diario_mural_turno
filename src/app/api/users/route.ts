@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, isSuperAdmin, branchWhere } from "@/lib/session";
+import { requireAdmin, isDios, branchWhere, writeBranchId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -61,16 +61,30 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = userCreateSchema.parse(body);
 
-    const isSuper = isSuperAdmin(session);
-    if (parsed.role === "superadmin" && !isSuper)
+    // Solo DIOS puede crear cuentas de super administrador.
+    const isDiosUser = isDios(session);
+    if (parsed.role === "superadmin" && !isDiosUser)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
     const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
     if (exists)
       return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
 
-    const branchId =
-      isSuper && parsed.branchId ? parsed.branchId : session.branchId ?? null;
+    // La sucursal destino según el rol: dios/superadmin pueden elegirla
+    // (el superadmin solo dentro de su empresa); admin/worker quedan fijos.
+    const branchId = writeBranchId(session, parsed.branchId);
+    if (branchId && session.role === "superadmin") {
+      const branch = await prisma.branch.findFirst({
+        where: { id: branchId, companyId: session.companyId ?? "__NONE__" },
+      });
+      if (!branch)
+        return NextResponse.json({ error: "Sucursal fuera de tu empresa" }, { status: 403 });
+    }
+    if (branchId && session.role === "admin") {
+      const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+      if (!branch)
+        return NextResponse.json({ error: "Sucursal no encontrada" }, { status: 400 });
+    }
 
     // Límite de trabajadores del plan de la empresa (si aplica).
     if (branchId) {

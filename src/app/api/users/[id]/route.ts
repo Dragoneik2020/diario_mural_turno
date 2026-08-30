@@ -6,7 +6,8 @@ import {
   requireUser,
   requireAdmin,
   canManageRole,
-  isSuperAdmin,
+  isDios,
+  isMultiBranch,
   branchWhere,
 } from "@/lib/session";
 
@@ -30,7 +31,8 @@ export async function PATCH(
   try {
     const session = await requireUser();
     const isManager = canManageRole(session.role);
-    const isSuper = isSuperAdmin(session);
+    const isSuper = isMultiBranch(session); // dios y superadmin pueden reasignar sucursales
+    const isRoot = isDios(session);
     if (!isManager && session.id !== params.id)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
@@ -49,17 +51,23 @@ export async function PATCH(
     const body = await req.json();
     const parsed = userUpdateSchema.parse(body);
 
-    if (parsed.role === "superadmin" && !isSuper)
+    // Solo DIOS puede asignar el rol de super administrador.
+    if (parsed.role === "superadmin" && !isRoot)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     if ("branchId" in parsed && !isSuper) delete (parsed as any).branchId;
 
     if (isSuper && parsed.branchId) {
-      const branch = await prisma.branch.findUnique({
-        where: { id: parsed.branchId },
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: parsed.branchId,
+          ...(session.role === "superadmin"
+            ? { companyId: session.companyId ?? "__NONE__" }
+            : {}),
+        },
       });
       if (!branch)
         return NextResponse.json(
-          { error: "Sucursal no encontrada" },
+          { error: "Sucursal no encontrada o fuera de tu empresa" },
           { status: 400 }
         );
     }

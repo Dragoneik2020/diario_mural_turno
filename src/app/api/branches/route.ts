@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireSuperAdmin, isSuperAdmin } from "@/lib/session";
+import { requireAdmin, requireCompanyManager, isMultiBranch, companyWhere, writeBranchId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +10,15 @@ const branchSchema = z.object({
   companyId: z.string().optional(),
 });
 
-// GET: sucursales. El superadmin ve todas; el admin de sucursal solo la suya.
+// GET: sucursales. El dios ve todas; el superadmin las de su empresa; el resto solo la suya.
 export async function GET() {
   try {
     const session = await requireAdmin();
     const branches = await prisma.branch.findMany({
-      where: isSuperAdmin(session) ? {} : { id: session.branchId ?? "__NONE__" },
+      where: {
+        ...companyWhere(session),
+        ...(isMultiBranch(session) ? {} : { id: session.branchId ?? "__NONE__" }),
+      },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -33,16 +36,20 @@ export async function GET() {
   }
 }
 
-// POST: crear sucursal (solo superadmin)
+// POST: crear sucursal (solo DIOS o super administrador).
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireSuperAdmin();
+    const session = await requireCompanyManager();
     const body = await req.json();
     const parsed = branchSchema.parse(body);
 
-    if (parsed.companyId) {
+    // El superadmin solo puede crear sucursales en su propia empresa.
+    const companyId =
+      session.role === "superadmin" ? session.companyId : parsed.companyId;
+
+    if (companyId) {
       const company = await prisma.company.findUnique({
-        where: { id: parsed.companyId },
+        where: { id: companyId },
         include: { plan: true },
       });
       if (!company)
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
     const branch = await prisma.branch.create({
       data: {
         name: parsed.name.trim(),
-        companyId: parsed.companyId,
+        companyId,
       },
     });
     return NextResponse.json({ branch }, { status: 201 });

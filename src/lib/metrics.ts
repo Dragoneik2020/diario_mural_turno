@@ -113,13 +113,18 @@ export async function getPersonalMetrics(
 
 export async function getGlobalMetrics(
   rangeDays = 30,
-  branchId?: string | null
+  branchId?: string | null,
+  companyId?: string | null
 ): Promise<GlobalMetrics> {
   const from = startOfDay(new Date());
   from.setDate(from.getDate() - (rangeDays - 1));
 
   const labels = await getShiftTypeLabels(branchId);
-  const scope = branchId ? { branchId } : {};
+  const scope = companyId
+    ? { branch: { companyId } }
+    : branchId
+      ? { branchId }
+      : {};
   const [workers, shifts, todayShifts, pendingConfirmation] = await Promise.all([
     prisma.user.findMany({
       where: { role: "worker", active: true, ...scope },

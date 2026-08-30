@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireSuperAdmin } from "@/lib/session";
+import { requireDios } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireSuperAdmin();
+    await requireDios();
     const body = await req.json();
     const parsed = patchSchema.parse(body);
 
@@ -46,14 +46,14 @@ export async function PATCH(
   }
 }
 
-// DELETE: eliminar empresa completa (superadmin). Borra en cascada sus
+// DELETE: eliminar empresa completa (solo DIOS). Borra en cascada sus
 // sucursales, usuarios, órdenes y contenido asociado.
 export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireSuperAdmin();
+    await requireDios();
     const company = await prisma.company.findUnique({
       where: { id: params.id },
       include: { branches: { select: { id: true } } },
