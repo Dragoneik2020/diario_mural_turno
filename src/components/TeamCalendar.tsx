@@ -42,7 +42,15 @@ function key(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function TeamCalendar({ currentUserId }: { currentUserId: string }) {
+export default function TeamCalendar({
+  currentUserId,
+  superadmin = false,
+  branches = [],
+}: {
+  currentUserId: string;
+  superadmin?: boolean;
+  branches?: { id: string; name: string }[];
+}) {
   const today = new Date();
   const { t } = useShiftTypeLabels();
   const [year, setYear] = useState(today.getFullYear());
@@ -50,20 +58,42 @@ export default function TeamCalendar({ currentUserId }: { currentUserId: string 
   const [selected, setSelected] = useState<string>(key(today));
   const [shifts, setShifts] = useState<TeamShift[]>([]);
   const [loading, setLoading] = useState(false);
+  const [branchId, setBranchId] = useState("");
+  const [cargo, setCargo] = useState("");
+  const [cargos, setCargos] = useState<string[]>([]);
+
+  const loadCargos = useCallback(async () => {
+    const q = superadmin && branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
+    try {
+      const res = await fetch(`/api/settings/cargos${q}`);
+      const d = await res.json();
+      setCargos(Array.isArray(d.cargos) ? d.cargos : []);
+    } catch {
+      setCargos([]);
+    }
+  }, [superadmin, branchId]);
+
+  useEffect(() => {
+    loadCargos();
+  }, [loadCargos]);
 
   const load = useCallback(async () => {
     setLoading(true);
     const first = new Date(year, month, 1);
     const last = new Date(year, month + 1, 0, 23, 59, 59);
-    const res = await fetch(
-      `/api/team-shifts?from=${first.toISOString()}&to=${last.toISOString()}`
-    );
+    const params = new URLSearchParams({
+      from: first.toISOString(),
+      to: last.toISOString(),
+    });
+    if (superadmin && branchId) params.set("branchId", branchId);
+    if (cargo) params.set("cargo", cargo);
+    const res = await fetch(`/api/team-shifts?${params.toString()}`);
     setLoading(false);
     if (res.ok) {
       const d = await res.json();
       setShifts(d.shifts);
     }
-  }, [year, month]);
+  }, [year, month, superadmin, branchId, cargo]);
 
   useEffect(() => {
     load();
@@ -97,7 +127,7 @@ export default function TeamCalendar({ currentUserId }: { currentUserId: string 
   return (
     <section className="card">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-slate-800 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-brand-600" /> Calendario del equipo</h2>
+        <h2 className="font-semibold text-slate-800 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-brand-600" /> Calendario del equipo{cargo ? ` · ${cargo}` : ""}</h2>
         <div className="flex items-center gap-2">
           <button onClick={() => changeMonth(-1)} className="btn-ghost px-2 py-1"><ChevronLeft className="h-4 w-4" /></button>
           <span className="text-sm font-medium text-slate-600 min-w-[120px] text-center">
@@ -105,6 +135,54 @@ export default function TeamCalendar({ currentUserId }: { currentUserId: string 
           </span>
           <button onClick={() => changeMonth(1)} className="btn-ghost px-2 py-1"><ChevronRight className="h-4 w-4" /></button>
         </div>
+      </div>
+
+      {superadmin && branches.length > 0 && (
+        <label className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+          Organización
+          <select
+            className="input !w-auto !py-1 text-xs"
+            value={branchId}
+            onChange={(e) => {
+              setBranchId(e.target.value);
+              setCargo("");
+            }}
+          >
+            <option value="">Todas las organizaciones</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          {branchId && (
+            <span className="text-xs text-slate-400">
+              {branches.find((b) => b.id === branchId)?.name}
+            </span>
+          )}
+        </label>
+      )}
+
+      {superadmin && branches.length === 0 && (
+        <div className="mb-3 text-sm text-slate-400">
+          Sin organizaciones disponibles.
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <button
+          onClick={() => setCargo("")}
+          className={cargo === "" ? "btn-primary px-3 py-1 text-xs" : "btn-ghost px-3 py-1 text-xs"}
+        >
+          Todo el equipo
+        </button>
+        {cargos.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCargo(cargo === c ? "" : c)}
+            className={cargo === c ? "btn-primary px-3 py-1 text-xs" : "btn-ghost px-3 py-1 text-xs"}
+          >
+            {c}
+          </button>
+        ))}
       </div>
 
       {loading && <div className="text-xs text-slate-400 mb-2">Cargando…</div>}

@@ -5,10 +5,14 @@ import { DEFAULT_CARGOS, getCargos, GLOBAL_BRANCH_ID } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireUser();
-    const list = await getCargos(session.branchId);
+    const { searchParams } = new URL(req.url);
+    const requested = searchParams.get("branchId");
+    const branchId =
+      isSuperAdmin(session) && requested ? requested : session.branchId;
+    const list = await getCargos(branchId);
     const scope = isSuperAdmin(session) ? {} : { branchId: session.branchId };
     const groups = await prisma.user.groupBy({
       by: ["cargo"],

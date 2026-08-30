@@ -29,7 +29,7 @@ export default async function AdminPage() {
 
   const scope = branchWhere(session);
 
-  const [users, metrics, boardShifts, monthShifts, pendingShifts, todayShifts] =
+  const [users, metrics, boardShifts, monthShifts, pendingShifts, todayShifts, branches] =
     await Promise.all([
       prisma.user.findMany({
         where: { ...scope },
@@ -66,6 +66,10 @@ export default async function AdminPage() {
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: { start: "asc" },
       }),
+      prisma.branch.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true },
+      }),
     ]);
 
   return (
@@ -95,7 +99,11 @@ export default async function AdminPage() {
           todayShifts={todayShifts}
         />
 
-        <TeamCalendar currentUserId={session.id} />
+        <TeamCalendar
+          currentUserId={session.id}
+          superadmin={isSuperAdmin(session)}
+          branches={branches}
+        />
 
         <section className="card">
           <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>

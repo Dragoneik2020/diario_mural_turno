@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, branchWhere } from "@/lib/session";
+import { requireUser, branchWhere, isSuperAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +10,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const branchId = searchParams.get("branchId");
+    const cargo = searchParams.get("cargo");
 
     const where: any = { ...branchWhere(session) };
     if (from) where.date = { ...(where.date || {}), gte: new Date(from) };
     if (to) where.date = { ...(where.date || {}), lte: new Date(to) };
+    if (branchId && isSuperAdmin(session)) where.branchId = branchId;
+    if (cargo) where.user = { ...(where.user || {}), cargo };
 
     const shifts = await prisma.shift.findMany({
       where,
