@@ -139,8 +139,11 @@ export default function LandingPage() {
             sucursales, departamentos y cargos.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/login" className="btn-primary px-6 py-3 text-[15px]">
-              Ingresar <ArrowRight className="h-4 w-4" />
+            <Link href="/planes" className="btn-primary px-6 py-3 text-[15px]">
+              Contrata aquí <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/login" className="btn-ghost px-5 py-3 text-[15px]">
+              Ingresar
             </Link>
             <a
               href="#funciones"
@@ -289,11 +292,11 @@ export default function LandingPage() {
               departamentos y cargos de tu equipo, o contrata un plan nuevo.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/login" className="btn-primary px-7 py-3 text-[15px]">
-                Ingresar al panel <ArrowRight className="h-4 w-4" />
+              <Link href="/planes" className="btn-primary px-7 py-3 text-[15px]">
+                Contrata aquí <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/planes" className="btn-ghost px-7 py-3 text-[15px]">
-                Ver precios
+              <Link href="/login" className="btn-ghost px-7 py-3 text-[15px]">
+                Ingresar al panel
               </Link>
             </div>
           </div>
