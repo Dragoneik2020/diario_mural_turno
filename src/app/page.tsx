@@ -114,6 +114,9 @@ export default function LandingPage() {
             <a href="#estructura" className="transition hover:text-white">
               Estructura
             </a>
+            <Link href="/planes" className="transition hover:text-white">
+              Precios
+            </Link>
             <a href="#acceso" className="transition hover:text-white">
               Acceso
             </a>
@@ -283,11 +286,14 @@ export default function LandingPage() {
             </h2>
             <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-slate-400">
               Entra al panel para gestionar organizaciones, sucursales,
-              departamentos y cargos de tu equipo.
+              departamentos y cargos de tu equipo, o contrata un plan nuevo.
             </p>
-            <div className="mt-9">
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link href="/login" className="btn-primary px-7 py-3 text-[15px]">
                 Ingresar al panel <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/planes" className="btn-ghost px-7 py-3 text-[15px]">
+                Ver precios
               </Link>
             </div>
           </div>
@@ -312,6 +318,9 @@ export default function LandingPage() {
             <a href="#estructura" className="transition hover:text-slate-300">
               Estructura
             </a>
+            <Link href="/planes" className="transition hover:text-slate-300">
+              Precios
+            </Link>
             <Link href="/login" className="transition hover:text-slate-300">
               Ingresar
             </Link>

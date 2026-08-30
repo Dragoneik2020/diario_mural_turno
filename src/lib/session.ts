@@ -40,7 +40,25 @@ export function branchWhere(session: Session): { branchId?: string } {
   return { branchId: session.branchId ?? "__NONE__" };
 }
 
-/** Sucursal destino para escrituras. El superadmin escribe en el ámbito global. */
+/**
+ * Sucursal destino para escrituras. El superadmin escribe en el ámbito global.
+ * Para consultas por empresa (tenant), usar companyWhere().
+ */
 export function writeBranchId(session: Session): string | null {
   return session.branchId ?? null;
+}
+
+/**
+ * Fragment `where` para aislar datos por empresa (tenant).
+ * El superadmin no tiene filtro (ve todas las empresas); un admin de empresa
+ * solo ve su empresa. Una sesión empresa sin companyId no ve nada.
+ */
+export function companyWhere(session: Session): { company?: { id: string } } {
+  if (isSuperAdmin(session)) return {};
+  return { company: { id: session.companyId ?? "__NONE__" } };
+}
+
+/** companyId destino para escrituras de tenant. */
+export function writeCompanyId(session: Session): string | null {
+  return session.companyId ?? null;
 }

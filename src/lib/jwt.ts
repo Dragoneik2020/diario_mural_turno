@@ -17,6 +17,7 @@ export interface Session {
   department?: string | null;
   branchId?: string | null;
   branchName?: string | null;
+  companyId?: string | null;
 }
 
 export async function createToken(session: Session): Promise<string> {
@@ -28,6 +29,7 @@ export async function createToken(session: Session): Promise<string> {
     department: session.department ?? null,
     branchId: session.branchId ?? null,
     branchName: session.branchName ?? null,
+    companyId: session.companyId ?? null,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -46,6 +48,7 @@ export async function verifyToken(token: string): Promise<Session | null> {
       department: (payload.department as string | null) ?? null,
       branchId: (payload.branchId as string | null) ?? null,
       branchName: (payload.branchName as string | null) ?? null,
+      companyId: (payload.companyId as string | null) ?? null,
     };
   } catch {
     return null;

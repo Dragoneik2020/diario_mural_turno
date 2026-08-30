@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const branchSchema = z.object({
   name: z.string().min(2).max(100),
+  companyId: z.string().optional(),
 });
 
 // GET: sucursales. El superadmin ve todas; el admin de sucursal solo la suya.
@@ -19,6 +20,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        companyId: true,
         createdAt: true,
         _count: { select: { users: true, shifts: true } },
       },
@@ -34,10 +36,40 @@ export async function GET() {
 // POST: crear sucursal (solo superadmin)
 export async function POST(req: NextRequest) {
   try {
-    await requireSuperAdmin();
+    const session = await requireSuperAdmin();
     const body = await req.json();
     const parsed = branchSchema.parse(body);
-    const branch = await prisma.branch.create({ data: { name: parsed.name.trim() } });
+
+    if (parsed.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: parsed.companyId },
+        include: { plan: true },
+      });
+      if (!company)
+        return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
+      if (company.status === "cancelada")
+        return NextResponse.json(
+          { error: "La empresa está cancelada; no puede crear sucursales." },
+          { status: 403 }
+        );
+      if (company.plan && company.plan.maxBranches > 0) {
+        const count = await prisma.branch.count({
+          where: { companyId: company.id },
+        });
+        if (count >= company.plan.maxBranches)
+          return NextResponse.json(
+            { error: `Límite del plan alcanzado (${company.plan.maxBranches} sucursales).` },
+            { status: 403 }
+          );
+      }
+    }
+
+    const branch = await prisma.branch.create({
+      data: {
+        name: parsed.name.trim(),
+        companyId: parsed.companyId,
+      },
+    });
     return NextResponse.json({ branch }, { status: 201 });
   } catch (e: any) {
     if (e.name === "ZodError")

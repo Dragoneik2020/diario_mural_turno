@@ -72,6 +72,27 @@ export async function POST(req: NextRequest) {
     const branchId =
       isSuper && parsed.branchId ? parsed.branchId : session.branchId ?? null;
 
+    // Límite de trabajadores del plan de la empresa (si aplica).
+    if (branchId) {
+      const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        include: { company: { include: { plan: true } } },
+      });
+      const company = branch?.company;
+      if (company && company.plan && company.plan.maxWorkers > 0) {
+        const count = await prisma.user.count({
+          where: { branch: { companyId: company.id } },
+        });
+        if (count >= company.plan.maxWorkers)
+          return NextResponse.json(
+            {
+              error: `Límite del plan alcanzado (${company.plan.maxWorkers} trabajadores).`,
+            },
+            { status: 403 }
+          );
+      }
+    }
+
     const password = await bcrypt.hash(parsed.password, 10);
     const user = await prisma.user.create({
       data: {

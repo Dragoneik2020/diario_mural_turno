@@ -8,13 +8,22 @@ import EmptyState from "@/components/EmptyState";
 interface BranchRow {
   id: string;
   name: string;
+  companyId: string | null;
   createdAt: string;
   _count: { users: number; shifts: number };
+}
+
+interface CompanyLite {
+  id: string;
+  name: string;
+  plan: { name: string } | null;
 }
 
 export default function BranchManager() {
   const router = useRouter();
   const [branches, setBranches] = useState<BranchRow[]>([]);
+  const [companies, setCompanies] = useState<CompanyLite[]>([]);
+  const [companyId, setCompanyId] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,9 +44,28 @@ export default function BranchManager() {
     }
   }, []);
 
+  const loadCompanies = useCallback(async () => {
+    try {
+      const res = await fetch("/api/companies");
+      const d = await res.json();
+      if (Array.isArray(d.companies)) {
+        setCompanies(d.companies);
+        if (d.companies.length === 1) setCompanyId(d.companies[0].id);
+      }
+    } catch {
+      setCompanies([]);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadCompanies();
+  }, [load, loadCompanies]);
+
+  useEffect(() => {
+    if (companyId) setMsg("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
 
   function startEdit(b: BranchRow) {
     setEditingId(b.id);
@@ -113,7 +141,7 @@ export default function BranchManager() {
       const res = await fetch("/api/branches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: v }),
+        body: JSON.stringify({ name: v, companyId: companyId || undefined }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -137,9 +165,25 @@ export default function BranchManager() {
         <Store className="h-5 w-5 text-brand-600" /> Sucursales
       </h2>
 
-      <form onSubmit={create} className="flex gap-2 mb-5">
+      <form onSubmit={create} className="flex flex-wrap gap-2 mb-5">
+        {companies.length > 0 && (
+          <select
+            className="input !w-auto text-sm"
+            value={companyId}
+            onChange={(e) => setCompanyId(e.target.value)}
+            title="Empresa a la que pertenece la sucursal"
+          >
+            <option value="">Sin empresa</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.plan ? ` · ${c.plan.name}` : ""}
+              </option>
+            ))}
+          </select>
+        )}
         <input
-          className="input"
+          className="input min-w-[180px] flex-1"
           placeholder="Nombre de la nueva sucursal"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -192,6 +236,11 @@ export default function BranchManager() {
                     <div className="font-medium text-slate-800">{b.name}</div>
                     <div className="text-xs text-slate-400">
                       {b._count.users} personas · {b._count.shifts} turnos
+                      {b.companyId && (
+                        <span className="ml-1.5 text-brand-400">
+                          · {companies.find((c) => c.id === b.companyId)?.name ?? "Empresa"}
+                        </span>
+                      )}
                     </div>
                   </>
                 )}

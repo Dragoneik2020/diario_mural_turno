@@ -4,6 +4,57 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 const GLOBAL = "global";
 const SEED_DEMO = process.env.SEED_DEMO === "true";
+const RINCONZ_COMPANY_ID = "company-rincon-z";
+
+const DEFAULT_PLANS = [
+  {
+    code: "basico",
+    name: "Básico",
+    description: "Para una sucursal que recién organiza sus turnos.",
+    priceMensual: 19990,
+    priceAnual: 199900,
+    maxBranches: 1,
+    maxWorkers: 30,
+    features: JSON.stringify([
+      "1 sucursal",
+      "Hasta 30 trabajadores",
+      "Calendario de turnos",
+      "Mural de avisos",
+      "Encuestas y votaciones",
+    ]),
+  },
+  {
+    code: "pro",
+    name: "Pro",
+    description: "Para equipos que crecen y necesitan varias sucursales.",
+    priceMensual: 39990,
+    priceAnual: 399900,
+    maxBranches: 5,
+    maxWorkers: 150,
+    features: JSON.stringify([
+      "Hasta 5 sucursales",
+      "Hasta 150 trabajadores",
+      "Todo lo del Básico",
+      "Filtro por cargo y departamento",
+      "Exportación a Excel",
+    ]),
+  },
+  {
+    code: "empresa",
+    name: "Empresa",
+    description: "Para organizaciones grandes con muchas sucursales.",
+    priceMensual: 79990,
+    priceAnual: 799900,
+    maxBranches: 9999,
+    maxWorkers: 99999,
+    features: JSON.stringify([
+      "Sucursales y trabajadores ilimitados",
+      "Todo lo del Pro",
+      "Roles y permisos avanzados",
+      "Soporte prioritario",
+    ]),
+  },
+];
 
 async function main() {
   const adminPassword = await bcrypt.hash("admin123", 10);
@@ -204,6 +255,35 @@ async function main() {
     data: { branchId: central.id },
   });
 
+  // Planes por defecto (upsert idempotente).
+  for (const p of DEFAULT_PLANS) {
+    await prisma.plan.upsert({
+      where: { code: p.code },
+      update: { ...p },
+      create: { ...p },
+    });
+  }
+
+  // Empresa demo "Rincon-Z" dueña de las sucursales existentes.
+  const empresaPlan = await prisma.plan.findUnique({ where: { code: "empresa" } });
+  await prisma.company.upsert({
+    where: { id: RINCONZ_COMPANY_ID },
+    update: { name: "Rincon-Z", status: "activa", planId: empresaPlan?.id ?? null },
+    create: {
+      id: RINCONZ_COMPANY_ID,
+      name: "Rincon-Z",
+      slug: "rincon-z",
+      status: "activa",
+      planId: empresaPlan?.id ?? null,
+    },
+  });
+
+  // Backfill: las sucursales legacy quedan bajo la empresa demo.
+  await prisma.branch.updateMany({
+    where: { companyId: null },
+    data: { companyId: RINCONZ_COMPANY_ID },
+  });
+
   await prisma.setting.upsert({
     where: { branchId_key: { branchId: GLOBAL, key: "shiftTypeLabels" } },
     update: {},
@@ -253,6 +333,7 @@ async function main() {
   console.log("Super Admin: admin@demo.com / admin123");
   console.log("Admin Central: central@demo.com / admin123");
   console.log("Admin Norte: norte@demo.com / admin123");
+  console.log("Empresa demo: Rincon-Z (plan Empresa, dueña de las sucursales legacy)");
   if (SEED_DEMO)
     console.log("Trabajadores demo: ana@demo.com, carlos@demo.com, maria@demo.com, javier@demo.com, lucia@demo.com, pedro@demo.com / trabajador123");
 }

@@ -7,6 +7,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  status           String    @default("pendiente") // pendiente | activa | cancelada
+  planId           String?
+  plan             Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([planId])
+}
+
+model Plan {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  name         String
+  description  String?
+  priceMensual Int
+  priceAnual   Int
+  maxBranches  Int
+  maxWorkers   Int
+  features     String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  companies    Company[]
+  orders       Order[]
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  period          String    @default("mensual") // mensual | anual
+  amount          Int
+  status          String    @default("pendiente") // pendiente | pagado | fallido | reembolsado
+  khipuPaymentId  String?
+  khipuPaymentUrl String?
+  createdAt       DateTime  @default(now())
+  paidAt          DateTime?
+
+  @@index([companyId])
+  @@index([planId])
+}
+
+model Branch {
+  id            String         @id @default(cuid())
+  name          String
+  companyId     String?
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now())
+  users         User[]
+  shifts        Shift[]
+  announcements Announcement[]
+  polls         Poll[]
+
+  @@index([companyId])
+}
+
 model User {
   id         String   @id @default(cuid())
   name       String
@@ -16,18 +78,24 @@ model User {
   department String?
   cargo      String?
   active     Boolean  @default(true)
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   shifts     Shift[]
   announcements Announcement[]
   polls        Poll[]
   votes        PollVote[]
+
+  @@index([branchId])
 }
 
 model Shift {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   date      DateTime
   start     DateTime
   end       DateTime
@@ -39,27 +107,35 @@ model Shift {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
-  @@index([date])
+  @@index([branchId, date])
 }
 
 model Announcement {
   id        String   @id @default(cuid())
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   content   String
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([branchId])
 }
 
 model Poll {
   id        String   @id @default(cuid())
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   question  String
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   options   PollOption[]
   votes     PollVote[]
+
+  @@index([branchId])
 }
 
 model PollOption {
@@ -85,6 +161,9 @@ model PollVote {
 }
 
 model Setting {
-  key   String @id
-  value String
+  branchId String @default("global")
+  key      String
+  value    String
+
+  @@id([branchId, key])
 }

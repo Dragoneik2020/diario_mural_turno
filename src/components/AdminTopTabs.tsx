@@ -20,7 +20,12 @@ export default function AdminTopTabs({
   superadmin?: boolean;
 }) {
   const tabs = superadmin
-    ? [...TABS.slice(0, 2), { href: "/admin/sucursales", label: "Sucursales" }, ...TABS.slice(2)]
+    ? [
+        ...TABS.slice(0, 2),
+        { href: "/admin/sucursales", label: "Sucursales" },
+        { href: "/admin/empresas", label: "Empresas" },
+        ...TABS.slice(2),
+      ]
     : TABS;
   return (
     <div className="sticky top-14 z-10 flex gap-1.5 w-fit max-w-full overflow-x-auto rounded-full border border-white/10 bg-white/[0.05] p-1 backdrop-blur-xl">

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const branch = user.branchId
       ? await prisma.branch.findUnique({
           where: { id: user.branchId },
-          select: { name: true },
+          select: { name: true, companyId: true },
         })
       : null;
 
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       department: user.department,
       branchId: user.branchId,
       branchName: branch?.name ?? null,
+      companyId: branch?.companyId ?? null,
     };
     const token = await createToken(session);
 

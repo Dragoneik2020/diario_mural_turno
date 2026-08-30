@@ -7,14 +7,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  status           String    @default("pendiente") // pendiente | activa | cancelada
+  planId           String?
+  plan             Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  currentPeriodEnd DateTime?
+  branches         Branch[]
+  orders           Order[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([planId])
+}
+
+model Plan {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  name         String
+  description  String?
+  priceMensual Int
+  priceAnual   Int
+  maxBranches  Int
+  maxWorkers   Int
+  features     String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  companies    Company[]
+  orders       Order[]
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  period          String    @default("mensual") // mensual | anual
+  amount          Int
+  status          String    @default("pendiente") // pendiente | pagado | fallido | reembolsado
+  khipuPaymentId  String?
+  khipuPaymentUrl String?
+  createdAt       DateTime  @default(now())
+  paidAt          DateTime?
+
+  @@index([companyId])
+  @@index([planId])
+}
+
 model Branch {
   id            String         @id @default(cuid())
   name          String
+  companyId     String?
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdAt     DateTime       @default(now())
   users         User[]
   shifts        Shift[]
   announcements Announcement[]
   polls         Poll[]
+
+  @@index([companyId])
 }
 
 model User {
