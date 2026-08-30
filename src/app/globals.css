@@ -319,6 +319,20 @@ table {
   animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 32s linear infinite;
+  animation-play-state: running;
+}
+
 h1,
 h2,
 h3,
@@ -331,6 +345,9 @@ p {
     scroll-behavior: auto;
   }
   .rise {
+    animation: none;
+  }
+  .marquee-track {
     animation: none;
   }
   * {
