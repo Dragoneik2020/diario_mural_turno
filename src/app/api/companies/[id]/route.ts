@@ -45,3 +45,36 @@ export async function PATCH(
     return NextResponse.json({ error: "Error" }, { status: 500 });
   }
 }
+
+// DELETE: eliminar empresa completa (superadmin). Borra en cascada sus
+// sucursales, usuarios, órdenes y contenido asociado.
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await requireSuperAdmin();
+    const company = await prisma.company.findUnique({
+      where: { id: params.id },
+      include: { branches: { select: { id: true } } },
+    });
+    if (!company)
+      return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
+
+    const branchIds = company.branches.map((b) => b.id);
+    await prisma.$transaction([
+      ...(branchIds.length > 0
+        ? [
+            prisma.user.deleteMany({ where: { branchId: { in: branchIds } } }),
+            prisma.branch.deleteMany({ where: { id: { in: branchIds } } }),
+          ]
+        : []),
+      prisma.company.delete({ where: { id: params.id } }),
+    ]);
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    return NextResponse.json({ error: "Error al eliminar" }, { status: 500 });
+  }
+}

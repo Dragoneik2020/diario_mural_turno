@@ -88,6 +88,25 @@ export default function CompaniesManager() {
     }
   }
 
+  async function removeCompany(c: Company) {
+    if (
+      !confirm(
+        `¿Eliminar la empresa "${c.name}"?\n\nSe borrarán sus ${c.branches.length} sucursales, ${c.workerCount} trabajadores y todas sus órdenes. Esta acción no se puede deshacer.`
+      )
+    )
+      return;
+    setSavingId(c.id);
+    setError("");
+    const res = await fetch(`/api/companies/${c.id}`, { method: "DELETE" });
+    setSavingId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error || "Error al eliminar la empresa");
+      return;
+    }
+    await load();
+  }
+
   if (loading) return <p className="text-sm text-slate-400">Cargando empresas…</p>;
 
   return (
@@ -168,6 +187,15 @@ export default function CompaniesManager() {
                   <option value="activa">Activa</option>
                   <option value="cancelada">Cancelada</option>
                 </select>
+
+                <button
+                  onClick={() => removeCompany(c)}
+                  disabled={isSaving}
+                  className="rounded-full border border-red-400/25 px-3 py-1.5 text-[11px] font-semibold text-red-300 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
+                  title="Eliminar empresa"
+                >
+                  {isSaving ? "Borrando…" : "Eliminar"}
+                </button>
 
                 <button
                   onClick={() => toggleOrders(c.id)}
