@@ -15,7 +15,6 @@ const TABS = [
 ];
 
 const DIOS_TABS = [
-  { href: "/admin/sucursales", label: "Sucursales" },
   { href: "/admin/empresas", label: "Empresas" },
   { href: "/admin/sitio", label: "Sitio web" },
   { href: "/admin/planes", label: "Planes" },
@@ -56,13 +55,15 @@ export default function AdminTopTabs({
   }
 
   const extra = isDios ? DIOS_TABS : superadmin ? [{ href: "/admin/sucursales", label: "Sucursales" }] : [];
-  const tabs = extra.length > 0
-    ? [
-        ...TABS.slice(0, 2),
-        ...extra,
-        ...TABS.slice(2),
-      ]
-    : TABS;
+  const tabs = isDios
+    ? DIOS_TABS
+    : extra.length > 0
+      ? [
+          ...TABS.slice(0, 2),
+          ...extra,
+          ...TABS.slice(2),
+        ]
+      : TABS;
 
   return (
     <div className="sticky top-14 z-10">

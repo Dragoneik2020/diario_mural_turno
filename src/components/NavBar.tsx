@@ -31,13 +31,16 @@ export default function NavBar({
           ? "Admin"
           : null;
 
-  const links: { href: string; label: string }[] = isManager
-    ? [
-        { href: "/admin", label: "Panel Admin" },
-        { href: "/admin/turnos", label: "Gestión de turnos" },
-        { href: "/dashboard", label: "Mi vista" },
-      ]
-    : [{ href: "/dashboard", label: "Mi panel" }];
+  const links: { href: string; label: string }[] =
+    role === "dios"
+      ? [{ href: "/admin/empresas", label: "Empresas" }]
+      : isManager
+        ? [
+            { href: "/admin", label: "Panel Admin" },
+            { href: "/admin/turnos", label: "Gestión de turnos" },
+            { href: "/dashboard", label: "Mi vista" },
+          ]
+        : [{ href: "/dashboard", label: "Mi panel" }];
 
   async function logout() {
     setBusy(true);
