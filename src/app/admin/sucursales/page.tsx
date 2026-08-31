@@ -4,7 +4,7 @@ import NavBar from "@/components/NavBar";
 import BranchManager from "@/components/BranchManager";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import { ChevronLeft } from "lucide-react";
-import { isDios, isMultiBranch, isSuperAdmin } from "@/lib/session";
+import { isDios, isMultiBranch, isSuperAdmin, effectiveCompanyId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,8 @@ export default async function SucursalesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!isMultiBranch(session)) redirect("/admin");
+
+  const autoCompany = effectiveCompanyId(session) ?? undefined;
 
   return (
     <div className="min-h-screen">
@@ -26,15 +28,15 @@ export default async function SucursalesPage() {
           <p className="text-slate-500">
             {isSuperAdmin(session)
               ? "Gestiona las sucursales de tu empresa."
-              : "Crea y gestiona las sucursales de todas las empresas."}
+              : autoCompany
+                ? "Gestiona las sucursales de la empresa seleccionada."
+                : "Crea y gestiona las sucursales de todas las empresas."}
           </p>
         </div>
 
         <AdminTopTabs current="/admin/sucursales" superadmin isDios={isDios(session)} />
 
-        <BranchManager
-          autoCompany={isSuperAdmin(session) ? session.companyId ?? undefined : undefined}
-        />
+        <BranchManager autoCompany={autoCompany} />
       </main>
     </div>
   );

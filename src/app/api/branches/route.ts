@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireCompanyManager, isMultiBranch, companyWhere, writeBranchId } from "@/lib/session";
+import { requireAdmin, requireCompanyManager, isMultiBranch, companyWhere, writeBranchId, isDios, diosCompanyScope } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +43,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = branchSchema.parse(body);
 
-    // El superadmin solo puede crear sucursales en su propia empresa.
-    const companyId =
-      session.role === "superadmin" ? session.companyId : parsed.companyId;
+    // El superadmin solo puede crear sucursales en su propia empresa;
+    // dios en modo empresa crea dentro de esa empresa.
+    const companyId = isDios(session)
+      ? diosCompanyScope() ?? parsed.companyId ?? null
+      : session.companyId;
 
     if (companyId) {
       const company = await prisma.company.findUnique({

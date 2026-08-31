@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getGlobalMetrics } from "@/lib/metrics";
-import { canManageRole, branchWhere, isSuperAdmin, isDios, isMultiBranch, companyWhere } from "@/lib/session";
+import { canManageRole, branchWhere, isSuperAdmin, isDios, isMultiBranch, companyWhere, effectiveCompanyId } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import LlamadosPorTrabajador from "@/components/LlamadosPorTrabajador";
 import ShiftReports from "@/components/ShiftReports";
@@ -45,7 +45,7 @@ export default async function AdminPage() {
           _count: { select: { shifts: true } },
         },
       }),
-      getGlobalMetrics(30, session.branchId, isSuperAdmin(session) ? session.companyId : null),
+      getGlobalMetrics(30, isMultiBranch(session) ? null : session.branchId, effectiveCompanyId(session)),
       prisma.shift.findMany({
         where: { date: { gte: start, lt: end }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
@@ -85,7 +85,9 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold text-slate-900">Panel de administración</h1>
           <p className="text-slate-500">
             {isDios(session)
-              ? "Vista DIOS: todas las empresas y sucursales."
+              ? effectiveCompanyId(session)
+                ? "Vista DIOS en modo empresa: solo esta empresa."
+                : "Vista DIOS: todas las empresas y sucursales."
               : isSuperAdmin(session)
                 ? "Vista de super administrador: todas las sucursales de tu empresa."
                 : `Sucursal: ${session.branchName ?? "—"}`}

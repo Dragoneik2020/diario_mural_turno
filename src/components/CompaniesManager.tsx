@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, ChevronDown, Clock, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, ChevronDown, Clock, DoorOpen, XCircle } from "lucide-react";
 
 interface PlanLite { id: string; code: string; name: string; priceMensual: number; }
 interface OrderLite { id: string; status: string; amount: number; period: string; paidAt: string | null; createdAt: string; plan: { name: string }; }
@@ -107,6 +107,23 @@ export default function CompaniesManager() {
     await load();
   }
 
+  async function enterCompany(c: Company) {
+    setSavingId(c.id);
+    setError("");
+    const res = await fetch("/api/companies/acceder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId: c.id }),
+    });
+    setSavingId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error || "Error al entrar a la empresa");
+      return;
+    }
+    window.location.href = "/admin";
+  }
+
   if (loading) return <p className="text-sm text-slate-400">Cargando empresas…</p>;
 
   return (
@@ -187,6 +204,16 @@ export default function CompaniesManager() {
                   <option value="activa">Activa</option>
                   <option value="cancelada">Cancelada</option>
                 </select>
+
+                <button
+                  onClick={() => enterCompany(c)}
+                  disabled={isSaving}
+                  className="rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1.5 text-[11px] font-semibold text-brand-200 transition hover:bg-brand-500/20 hover:text-white disabled:opacity-50"
+                  title="Entrar a la empresa (modo empresa)"
+                >
+                  <DoorOpen className="mr-1 inline h-3.5 w-3.5" />
+                  {isSaving ? "Entrando…" : "Acceder"}
+                </button>
 
                 <button
                   onClick={() => removeCompany(c)}

@@ -1,4 +1,13 @@
+import { cookies } from "next/headers";
 import { getSession, type Session } from "./auth";
+
+/** Cookie que guarda la empresa "abierta" por la cuenta DIOS (modo empresa). */
+export const DIOS_COMPANY_COOKIE = "dios_company";
+
+/** Desde el lado servidor: empresa activa si la cuenta DIOS entró a un tenant. */
+export function diosCompanyScope(): string | null {
+  return cookies().get(DIOS_COMPANY_COOKIE)?.value || null;
+}
 
 export async function requireUser(): Promise<Session> {
   const session = await getSession();
@@ -53,13 +62,17 @@ export function isMultiBranch(session: Session | null): boolean {
 
 /**
  * Fragment `where` para acotar consultas por sucursal/empresa según el rol.
- * - dios: sin filtro (ve todo).
+ * - dios: sin filtro (ve todo), o la empresa "abierta" en modo empresa.
  * - superadmin: todas las sucursales de su empresa.
  * - admin/worker: solo su sucursal.
  * Una sesión sin sucursal (legacy/corrupta) no ve nada, nunca todo.
  */
 export function branchWhere(session: Session): Record<string, unknown> {
-  if (isDios(session)) return {};
+  if (isDios(session)) {
+    const companyId = diosCompanyScope();
+    if (companyId) return { branch: { companyId } };
+    return {};
+  }
   if (isSuperAdmin(session))
     return { branch: { companyId: session.companyId ?? "__NONE__" } };
   return { branchId: session.branchId ?? "__NONE__" };
@@ -77,15 +90,31 @@ export function writeBranchId(session: Session, requested?: string | null): stri
 
 /**
  * Fragment `where` para acotar consultas del modelo Branch (que tiene companyId).
- * - dios: sin filtro (ve todas).
+ * - dios: sin filtro (ve todas), o la empresa "abierta" en modo empresa.
  * - cualquier otro: solo sucursales de su empresa.
  */
 export function companyWhere(session: Session): Record<string, unknown> {
-  if (isDios(session)) return {};
+  if (isDios(session)) {
+    const companyId = diosCompanyScope();
+    if (companyId) return { companyId };
+    return {};
+  }
   return { companyId: session.companyId ?? "__NONE__" };
+}
+
+/**
+ * companyId efectivo (para métricas y validaciones de escritura):
+ * - superadmin: su propia empresa.
+ * - dios: la empresa "abierta" en modo empresa (si la hay).
+ * - resto: null.
+ */
+export function effectiveCompanyId(session: Session): string | null {
+  if (isSuperAdmin(session)) return session.companyId ?? null;
+  if (isDios(session)) return diosCompanyScope();
+  return null;
 }
 
 /** companyId destino para escrituras de tenant. */
 export function writeCompanyId(session: Session): string | null {
-  return session.companyId ?? null;
+  return effectiveCompanyId(session) ?? session.companyId ?? null;
 }

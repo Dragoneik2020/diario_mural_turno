@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, isDios, branchWhere, writeBranchId } from "@/lib/session";
+import { requireAdmin, isDios, branchWhere, writeBranchId, effectiveCompanyId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -71,11 +71,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
 
     // La sucursal destino según el rol: dios/superadmin pueden elegirla
-    // (el superadmin solo dentro de su empresa); admin/worker quedan fijos.
+    // (el superadmin solo dentro de su empresa; dios en modo empresa también).
     const branchId = writeBranchId(session, parsed.branchId);
-    if (branchId && session.role === "superadmin") {
+    const companyId = effectiveCompanyId(session);
+    if (branchId && companyId) {
       const branch = await prisma.branch.findFirst({
-        where: { id: branchId, companyId: session.companyId ?? "__NONE__" },
+        where: { id: branchId, companyId },
       });
       if (!branch)
         return NextResponse.json({ error: "Sucursal fuera de tu empresa" }, { status: 403 });
