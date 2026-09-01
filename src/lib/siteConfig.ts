@@ -46,7 +46,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   heroTitle: "Tu equipo. Tus turnos. Un solo mural.",
   heroSubtitle:
     "El diario mural digital de turnos para organizaciones con varias sucursales, departamentos y cargos.",
-  heroCtaLabel: "Contrata aquÃ­",
+  heroCtaLabel: "Contrata aqui",
   capabilities: [
     "Turnos por cargo",
     "MÃºltiples sucursales",

@@ -104,14 +104,17 @@ export default async function AdminPage() {
           todayShifts={todayShifts}
         />
 
-        <TeamCalendar
-          currentUserId={session.id}
-          superadmin={isMultiBranch(session)}
-          branches={branches}
-        />
+        {!isDios(session) && (
+          <TeamCalendar
+            currentUserId={session.id}
+            superadmin={isMultiBranch(session)}
+            branches={branches}
+          />
+        )}
 
-        <section className="card">
-          <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>
+        {!isDios(session) && (
+          <section className="card">
+            <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><ClipboardList className="h-5 w-5 text-brand-600" /> Turnos próximos</h2>
             <ul className="divide-y divide-slate-100 max-h-[28rem] overflow-auto">
               {boardShifts.length === 0 && (
                 <li className="text-sm text-slate-400">Sin turnos programados.</li>
@@ -129,6 +132,7 @@ export default async function AdminPage() {
               ))}
             </ul>
           </section>
+        )}
 
         <ShiftReports />
       </main>
