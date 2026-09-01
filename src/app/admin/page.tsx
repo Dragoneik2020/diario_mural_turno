@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (isDios(session)) redirect("/admin/empresas");
   if (!canManageRole(session.role)) redirect("/dashboard");
 
   const start = new Date();
