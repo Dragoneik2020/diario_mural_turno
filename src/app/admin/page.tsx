@@ -134,7 +134,7 @@ export default async function AdminPage() {
           </section>
         )}
 
-        <ShiftReports isDios={isDios(session)} />
+        {!isDios(session) && <ShiftReports isDios={isDios(session)} />}
       </main>
     </div>
   );

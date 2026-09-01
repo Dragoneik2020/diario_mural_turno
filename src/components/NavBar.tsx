@@ -33,7 +33,10 @@ export default function NavBar({
 
   const links: { href: string; label: string }[] =
     role === "dios"
-      ? [{ href: "/admin/empresas", label: "Empresas" }]
+      ? [
+          { href: "/admin/empresas", label: "Empresas" },
+          { href: "/admin/reportes", label: "Reportes" },
+        ]
       : isManager
         ? [
             { href: "/admin", label: "Panel Admin" },
