@@ -9,6 +9,10 @@ interface ReportUser {
   name: string;
   role?: string;
 }
+interface ReportCompany {
+  id: string;
+  name: string;
+}
 interface ReportShift {
   id: string;
   date: string;
@@ -73,8 +77,10 @@ const ESTADO: Record<string, string> = {
   cumplido: "Cumplido",
 };
 
-export default function ShiftReports() {
+export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
   const [users, setUsers] = useState<ReportUser[]>([]);
+  const [companies, setCompanies] = useState<ReportCompany[]>([]);
+  const [company, setCompany] = useState<string>("all");
   const [worker, setWorker] = useState<string>("all");
   const [mode, setMode] = useState<"month" | "week" | "custom">("month");
   const [monthValue, setMonthValue] = useState(monthNow());
@@ -85,19 +91,38 @@ export default function ShiftReports() {
   const { t } = useShiftTypeLabels();
 
   useEffect(() => {
-    fetch("/api/users")
+    const q = isDios && company !== "all" ? `?companyId=${encodeURIComponent(company)}` : "";
+    fetch(`/api/users${q}`)
       .then((r) => r.json())
       .then((d) => {
         const list: ReportUser[] = Array.isArray(d) ? d : d.users || [];
         setUsers(list.filter((u) => u.role !== "admin" && u.role !== "superadmin" && u.role !== "dios"));
+        setWorker("all");
       });
-  }, []);
+  }, [isDios, company]);
+
+  useEffect(() => {
+    if (!isDios) return;
+    fetch("/api/companies")
+      .then((r) => r.json())
+      .then((d) => {
+        const list: ReportCompany[] = (d?.companies || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+        }));
+        setCompanies(list);
+      })
+      .catch(() => {});
+  }, [isDios]);
 
   async function exportReport() {
     setBusy(true);
     const { from, to, label } = computeRange(mode, monthValue, weekValue, fromDate, toDate);
-    const url = `/api/shifts?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-    const res = await fetch(worker !== "all" ? `${url}&userId=${worker}` : url);
+    const base = `/api/shifts?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const q = new URLSearchParams();
+    if (worker !== "all") q.set("userId", worker);
+    if (isDios && company !== "all") q.set("companyId", company);
+    const res = await fetch(`${base}&${q.toString()}`);
     const data = await res.json();
     const shifts: ReportShift[] = (data.shifts || []).sort(
       (a: ReportShift, b: ReportShift) =>
@@ -149,6 +174,19 @@ export default function ShiftReports() {
       <h2 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><FileDown className="h-5 w-5 text-brand-600" /> Reportes de turnos</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        {isDios && (
+          <div>
+            <label className="label">Empresa</label>
+            <select className="input" value={company} onChange={(e) => setCompany(e.target.value)}>
+              <option value="all">Todas</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="label">Rango</label>
           <select className="input" value={mode} onChange={(e) => setMode(e.target.value as any)}>

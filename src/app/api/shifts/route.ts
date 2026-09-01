@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, canManageRole, branchWhere } from "@/lib/session";
+import { requireUser, canManageRole, branchWhere, isDios } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +32,11 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const userIdParam = searchParams.get("userId");
+    const companyIdParam = searchParams.get("companyId");
 
     const where: any = { ...branchWhere(session) };
+    if (isDios(session) && companyIdParam && companyIdParam !== "all")
+      where.branch = { companyId: companyIdParam };
     if (from) where.date = { ...(where.date || {}), gte: new Date(from) };
     if (to) where.date = { ...(where.date || {}), lte: new Date(to) };
 

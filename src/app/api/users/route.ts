@@ -28,11 +28,16 @@ const userUpdateSchema = z.object({
   branchId: z.string().optional(),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireAdmin();
+    const companyId = new URL(req.url).searchParams.get("companyId");
+    const companyFilter =
+      isDios(session) && companyId && companyId !== "all"
+        ? { branch: { companyId } }
+        : {};
     const users = await prisma.user.findMany({
-      where: { ...branchWhere(session) },
+      where: { ...branchWhere(session), ...companyFilter },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

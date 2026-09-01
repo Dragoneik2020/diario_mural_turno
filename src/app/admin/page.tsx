@@ -134,7 +134,7 @@ export default async function AdminPage() {
           </section>
         )}
 
-        <ShiftReports />
+        <ShiftReports isDios={isDios(session)} />
       </main>
     </div>
   );
