@@ -31,9 +31,9 @@ export default function LoginPage() {
     }
     const { session } = await res.json();
     router.push(
-      session.role === "admin" ||
-        session.role === "superadmin" ||
-        session.role === "dios"
+      session.role === "dios"
+        ? "/admin/empresas"
+        : session.role === "admin" || session.role === "superadmin"
         ? "/admin"
         : "/dashboard"
     );
