@@ -57,13 +57,20 @@ export default function WorkersManager({
   const [cargos, setCargos] = useState<string[]>([]);
   const [departamentos, setDepartamentos] = useState<string[]>([]);
   const [filterBranch, setFilterBranch] = useState(defaultBranchId);
+  const [filterRole, setFilterRole] = useState("");
+  const [search, setSearch] = useState("");
   const [busyAssign, setBusyAssign] = useState<string | null>(null);
 
-  const visible = filterBranch === "__none__"
-    ? list.filter((u) => !u.branchId)
-    : filterBranch
-      ? list.filter((u) => u.branchId === filterBranch)
-      : list;
+  const visible = list.filter((u) => {
+    if (filterBranch === "__none__" ? !!u.branchId : filterBranch && u.branchId !== filterBranch)
+      return false;
+    if (filterRole && u.role !== filterRole) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   const blank = {
     name: "",
@@ -204,23 +211,63 @@ export default function WorkersManager({
         />
       </div>
 
-      {superadmin && branches.length > 0 && (
-        <div className="mb-3">
-          <label className="sr-only" htmlFor="branch-filter">Filtrar por sucursal</label>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <div className="flex-1 min-w-[180px]">
+          <label className="sr-only" htmlFor="user-search">Buscar</label>
+          <input
+            id="user-search"
+            className="input text-xs"
+            placeholder="Buscar por nombre o email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="sr-only" htmlFor="role-filter">Filtrar por rol</label>
           <select
-            id="branch-filter"
-            className="input max-w-xs text-xs"
-            value={filterBranch}
-            onChange={(e) => setFilterBranch(e.target.value)}
+            id="role-filter"
+            className="input !w-auto text-xs"
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
           >
-            <option value="">Todas las sucursales</option>
-            <option value="__none__">Sin sucursal</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
+            <option value="">Todos los roles</option>
+            {isDios && <option value="dios">DIOS</option>}
+            <option value="superadmin">Super Admin</option>
+            <option value="admin">Admin</option>
+            <option value="worker">Trabajador</option>
           </select>
         </div>
-      )}
+        {superadmin && branches.length > 0 && (
+          <div>
+            <label className="sr-only" htmlFor="branch-filter">Filtrar por sucursal</label>
+            <select
+              id="branch-filter"
+              className="input !w-auto text-xs"
+              value={filterBranch}
+              onChange={(e) => setFilterBranch(e.target.value)}
+            >
+              <option value="">Todas las sucursales</option>
+              <option value="__none__">Sin sucursal</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {(search || filterRole || filterBranch) && (
+          <button
+            type="button"
+            className="btn-ghost text-xs"
+            onClick={() => {
+              setSearch("");
+              setFilterRole("");
+              setFilterBranch("");
+            }}
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
 
       {error && !showForm && (
         <div className="mb-3 rounded-xl border border-red-400/20 bg-red-500/10 px-3.5 py-2.5 text-sm text-[#fca5a5]">
@@ -360,9 +407,11 @@ export default function WorkersManager({
                   <button onClick={() => openEdit(u)} className="text-xs text-brand-600 hover:underline mr-2">
                     Editar
                   </button>
-                  <button onClick={() => remove(u)} className="text-xs text-red-500 hover:underline">
-                    Eliminar
-                  </button>
+                  {u.role !== "dios" && (
+                    <button onClick={() => remove(u)} className="text-xs text-red-500 hover:underline">
+                      Eliminar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -375,11 +424,11 @@ export default function WorkersManager({
       {list.length > 0 && visible.length === 0 && (
         <EmptyState
           icon={Users}
-          title="Sin trabajadores en esta sucursal"
-          hint="Cambia el filtro de sucursal o crea uno nuevo."
+          title="Sin resultados"
+          hint="Ajusta los filtros de búsqueda o crea una cuenta nueva."
           action={
-            <button className="btn-ghost text-xs" onClick={() => setFilterBranch("")}>
-              Ver todas
+            <button className="btn-ghost text-xs" onClick={() => { setSearch(""); setFilterRole(""); setFilterBranch(""); }}>
+              Limpiar filtros
             </button>
           }
         />

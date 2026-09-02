@@ -125,10 +125,15 @@ export async function DELETE(
     const session = await requireAdmin();
     const target = await prisma.user.findFirst({
       where: { id: params.id, ...branchWhere(session) },
-      select: { id: true },
+      select: { id: true, role: true },
     });
     if (!target)
       return NextResponse.json({ error: "Trabajador no encontrado" }, { status: 404 });
+    if (target.role === "dios")
+      return NextResponse.json(
+        { error: "La cuenta DIOS no puede eliminarse" },
+        { status: 403 }
+      );
     await prisma.user.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
