@@ -19,6 +19,8 @@ interface PreviewRow {
   cargo: string;
   role: string;
   password: string;
+  sucursal: string;
+  branchId?: string;
   error?: string;
 }
 
@@ -73,11 +75,27 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
 
   function buildPreview(rows: string[][]): PreviewRow[] {
     if (!rows || rows.length === 0) return [];
-    const header = rows[0].map(normalize);
-    const hasHeader =
-      header.some((h) => h.includes("email") || h.includes("correo")) &&
-      header.some((h) => h.includes("nombre") || h.includes("name"));
-    const dataRows = hasHeader ? rows.slice(1) : rows;
+
+    // Busca la fila de encabezados en las primeras 10 filas
+    // (la planilla de ejemplo trae título en la fila 1 y encabezados en la 3).
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const h = (rows[i] || []).map(normalize);
+      const hasContact = h.some((x) => x.includes("email") || x.includes("correo"));
+      const hasPeople =
+        h.some((x) => x.includes("nombre") || x.includes("name")) ||
+        h.some((x) => x.includes("sucursal") || x.includes("apellido"));
+      if (hasContact && hasPeople) {
+        headerIdx = i;
+        break;
+      }
+    }
+
+    const header = headerIdx >= 0 ? rows[headerIdx].map(normalize) : rows[0].map(normalize);
+    const hasHeader = headerIdx >= 0;
+    const dataRows = (headerIdx >= 0 ? rows.slice(headerIdx + 1) : rows).filter((r) =>
+      (r || []).some((c) => String(c || "").trim() !== "")
+    );
 
     const idx = (keys: string[]) => {
       for (const k of keys) {
@@ -88,29 +106,60 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
     };
 
     const iName = hasHeader ? idx(["nombre", "name"]) : 0;
+    const iAp1 = hasHeader ? idx(["apellido paterno"]) : -1;
+    const iAp2 = hasHeader ? idx(["apellido materno"]) : -1;
     const iEmail = hasHeader ? idx(["email", "correo"]) : 1;
     const iDept = hasHeader ? idx(["departamento", "depto"]) : 2;
     const iCargo = hasHeader ? idx(["cargo"]) : 3;
-    const iPass = hasHeader ? idx(["contraseña", "password", "clave"]) : 4;
+    const iPass = hasHeader ? idx(["clave", "contraseña", "password"]) : 4;
     const iRole = hasHeader ? idx(["rol", "role"]) : 5;
+    const iSuc = hasHeader ? idx(["sucursal"]) : -1;
+
+    const resolveBranch = (sucursal: string): string | undefined => {
+      if (!sucursal || branches.length === 0) return undefined;
+      const q = normalize(sucursal);
+      for (const b of branches) {
+        // soporta etiquetas "Empresa · Sucursal": compara con la parte cruda
+        const raw = b.name.includes("·") ? b.name.split("·").pop()!.trim() : b.name;
+        if (normalize(raw) === q) return b.id;
+      }
+      for (const b of branches) {
+        const raw = b.name.includes("·") ? b.name.split("·").pop()!.trim() : b.name;
+        if (normalize(raw).includes(q) || q.includes(normalize(raw))) return b.id;
+      }
+      return undefined;
+    };
 
     return dataRows.map((r) => {
-      const name = (r[iName] || "").trim();
+      const ap1 = (iAp1 >= 0 ? r[iAp1] : "") || "";
+      const ap2 = (iAp2 >= 0 ? r[iAp2] : "") || "";
+      const parts = [(r[iName] || "").trim(), ap1.trim(), ap2.trim()].filter(Boolean);
+      const name = parts.join(" ");
       const email = (r[iEmail] || "").trim();
       const department = (r[iDept] || "").trim();
       const cargo = (r[iCargo] || "").trim();
       const password = (r[iPass] || "").trim();
-      const role = (r[iRole] || defaultRole).trim() || defaultRole;
+      const rawRole = (r[iRole] || "").trim().toLowerCase();
+      const role =
+        rawRole === "trabajador" ? "worker" : rawRole || defaultRole;
+      const sucursal = iSuc >= 0 ? (r[iSuc] || "").trim() : "";
+      const resolved = superadmin ? resolveBranch(sucursal) : undefined;
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      const err = !name ? "Falta nombre" : !emailOk ? "Email inválido" : undefined;
-      return { name, email, department, cargo, role, password, error: err };
+      const err = !name
+        ? "Falta nombre"
+        : !emailOk
+          ? "Email inválido"
+          : sucursal && superadmin && !resolved
+            ? "Sucursal no encontrada"
+            : undefined;
+      return { name, email, department, cargo, role, password, sucursal, branchId: resolved, error: err };
     });
   }
 
   function downloadTemplate() {
     const a = document.createElement("a");
     a.href = "/api/users/template";
-    a.download = "ejemplo_trabajadores.xlsx";
+    a.download = "Planilla_trabajadores_ejemplo.xlsx";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,6 +177,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
         cargo: p.cargo || undefined,
         role: p.role,
         password: p.password || undefined,
+        ...(superadmin && p.branchId ? { branchId: p.branchId } : {}),
       }));
     try {
       const res = await fetch("/api/users/bulk", {
@@ -159,15 +209,16 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl border border-white/10 bg-[#0c0c1c] p-5 shadow-2xl shadow-black/60">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-slate-800">Importar trabajadores (CSV)</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Importar trabajadores (Excel/CSV)</h3>
               <button className="text-slate-400 hover:text-slate-600" onClick={() => setOpen(false)}>
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <p className="text-sm text-slate-500 mb-2">
-              Columnas (en orden, con o sin cabecera): <b>Nombre, Email, Departamento, Cargo, Contraseña, Rol</b>.
-              La contraseña puede dejarse vacía si defines una por defecto.
+              Usa la planilla <b>Planilla_trabajadores_ejemplo.xlsx</b> (o CSV): columnas{" "}
+              <b>RUT, Nombre, Apellido Paterno, Apellido Materno, telefono, correo electronico, Sucursal, Cargo, Clave de acceso</b>.
+              La columna Sucursal asigna cada trabajador a su sucursal por nombre. RUT y teléfono son informativos.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -221,7 +272,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                     <tr className="text-left text-slate-500 border-b">
                       <th className="py-1 px-2">Nombre</th>
                       <th className="py-1 px-2">Email</th>
-                      <th className="py-1 px-2">Depto.</th>
+                      <th className="py-1 px-2">Sucursal</th>
                       <th className="py-1 px-2">Cargo</th>
                       <th className="py-1 px-2">Rol</th>
                       <th className="py-1 px-2">Estado</th>
@@ -232,7 +283,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                       <tr key={i} className="border-b border-slate-100">
                         <td className="py-1 px-2">{p.name}</td>
                         <td className="py-1 px-2">{p.email}</td>
-                        <td className="py-1 px-2">{p.department || "—"}</td>
+                        <td className="py-1 px-2">{p.sucursal || "—"}</td>
                         <td className="py-1 px-2">{p.cargo || "—"}</td>
                         <td className="py-1 px-2">{p.role}</td>
                         <td className="py-1 px-2">

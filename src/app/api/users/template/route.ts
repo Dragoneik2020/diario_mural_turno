@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, branchWhere } from "@/lib/session";
+import { requireAdmin, companyWhere } from "@/lib/session";
 import { getCargos } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -11,58 +11,82 @@ export async function GET(req: NextRequest) {
     const session = await requireAdmin();
 
     const cargos = await getCargos(session.branchId);
-    const users = await prisma.user.findMany({
-      where: { ...branchWhere(session) },
-      select: { department: true },
-    });
-    const deptos = Array.from(new Set(users.map((u) => u.department).filter((d): d is string => !!d)));
 
-    const rolList = ["worker", "admin"];
+    const branches = await prisma.branch.findMany({
+      where: { ...companyWhere(session) },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    });
+
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Trabajadores");
-    ws.columns = [
-      { header: "Nombre", key: "nombre", width: 22 },
-      { header: "Email", key: "email", width: 26 },
-      { header: "Departamento", key: "depto", width: 20 },
-      { header: "Cargo", key: "cargo", width: 18 },
-      { header: "Contraseña", key: "pass", width: 16 },
-      { header: "Rol", key: "rol", width: 12 },
-    ];
-    ws.addRow({
-      nombre: "Lucía Pérez",
-      email: "lucia@demo.com",
-      depto: deptos[0] || "",
-      cargo: cargos[0] || "",
-      pass: "pass123",
-      rol: "worker",
-    });
-    ws.addRow({
-      nombre: "Pedro Sánchez",
-      email: "pedro@demo.com",
-      depto: deptos[1] || "",
-      cargo: cargos[1] || "",
-      pass: "pass123",
-      rol: "worker",
-    });
-    ws.addRow({ nombre: "Sara Gómez", email: "sara@demo.com", depto: "", cargo: "", pass: "", rol: "worker" });
-    ws.getRow(1).font = { bold: true };
+    const ws = wb.addWorksheet("Hoja1");
 
+    // Título como en la planilla de ejemplo
+    ws.getCell("B1").value = "EQUIPO DE TRABAJO";
+    ws.getCell("B1").font = { bold: true, size: 14 };
+
+    // Encabezados (fila 3)
+    const headers = [
+      "RUT",
+      "Nombre",
+      "Apellido Paterno",
+      "Apellido Materno",
+      "telefono",
+      "correo electronico",
+      "Sucursal",
+      "Cargo",
+      "Clave de acceso",
+    ];
+    headers.forEach((h, i) => {
+      const cell = ws.getRow(3).getCell(i + 1);
+      cell.value = h;
+      cell.font = { bold: true };
+    });
+
+    const widths = [14, 16, 16, 16, 14, 26, 20, 18, 16];
+    widths.forEach((w, i) => (ws.getColumn(i + 1).width = widths[i]));
+
+    // Filas de ejemplo
+    const firstBranch = branches[0]?.name ?? "";
+    ws.getRow(4).values = [
+      "",
+      "12.345.678-9",
+      "Lucía",
+      "Pérez",
+      "Soto",
+      "+56 9 1234 5678",
+      "lucia@demo.com",
+      firstBranch,
+      cargos[0] || "",
+      "pass123",
+    ];
+    ws.getRow(5).values = [
+      "",
+      "98.765.432-1",
+      "Pedro",
+      "Sánchez",
+      "Muñoz",
+      "",
+      "pedro@demo.com",
+      firstBranch,
+      cargos[1] || "",
+      "pass123",
+    ];
+    ws.getRow(6).values = ["", "", "", "", "", "", "", "", "", ""];
+
+    // Hoja oculta con catálogos (sucursales y cargos)
     const cat = wb.addWorksheet("Catalogos");
     cat.state = "hidden";
-    cargos.forEach((v, i) => (cat.getCell(`A${i + 2}`).value = v));
-    deptos.forEach((v, i) => (cat.getCell(`B${i + 2}`).value = v));
-    rolList.forEach((v, i) => (cat.getCell(`C${i + 2}`).value = v));
-    const aLast = Math.max(cargos.length, 1);
-    const bLast = Math.max(deptos.length, 1);
-    const cLast = rolList.length;
-    const dvCargo = `'Catalogos'!$A$2:$A$${aLast + 1}`;
-    const dvDepto = `'Catalogos'!$B$2:$B$${bLast + 1}`;
-    const dvRol = `'Catalogos'!$C$2:$C$${cLast + 1}`;
+    branches.forEach((b, i) => (cat.getCell(`A${i + 2}`).value = b.name));
+    cargos.forEach((v, i) => (cat.getCell(`B${i + 2}`).value = v));
+    const aLast = Math.max(branches.length, 1);
+    const bLast = Math.max(cargos.length, 1);
+    const dvSuc = `'Catalogos'!$A$2:$A$${aLast + 1}`;
+    const dvCargo = `'Catalogos'!$B$2:$B$${bLast + 1}`;
 
-    for (let r = 2; r <= 1000; r++) {
-      ws.getCell(`C${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvDepto] };
-      ws.getCell(`D${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvCargo] };
-      ws.getCell(`F${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvRol] };
+    for (let r = 4; r <= 500; r++) {
+      ws.getCell(`G${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvSuc] };
+      ws.getCell(`H${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvCargo] };
     }
 
     const buf = await wb.xlsx.writeBuffer();
@@ -71,7 +95,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="ejemplo_trabajadores.xlsx"',
+        "Content-Disposition": 'attachment; filename="Planilla_trabajadores_ejemplo.xlsx"',
       },
     });
   } catch (e: any) {

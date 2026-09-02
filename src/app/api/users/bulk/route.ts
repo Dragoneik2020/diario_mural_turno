@@ -13,6 +13,7 @@ const rowSchema = z.object({
   role: z.enum(["worker", "admin"]).optional(),
   department: z.string().optional(),
   cargo: z.string().optional(),
+  branchId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -42,6 +43,22 @@ export async function POST(req: NextRequest) {
         continue;
       }
       const { name, email, role, department, cargo } = parsed.data;
+
+      // Sucursal efectiva de la fila: la del archivo, o la global elegida.
+      let rowBranchId = branchId;
+      if (isSuper && parsed.data.branchId && parsed.data.branchId !== branchId) {
+        if (session.role === "superadmin") {
+          const b = await prisma.branch.findFirst({
+            where: { id: parsed.data.branchId, companyId: session.companyId ?? "__NONE__" },
+          });
+          if (!b) {
+            errors.push({ email, error: "Sucursal fuera de tu empresa" });
+            continue;
+          }
+        }
+        rowBranchId = parsed.data.branchId;
+      }
+
       const password = parsed.data.password || defaultPassword;
       if (!password) {
         errors.push({ email, error: "Sin contraseña (falta en fila y sin default)" });
@@ -63,7 +80,7 @@ export async function POST(req: NextRequest) {
             department: department || null,
             cargo: cargo || null,
             active: true,
-            branchId,
+            branchId: rowBranchId,
           },
           select: { id: true, name: true, email: true },
         });
