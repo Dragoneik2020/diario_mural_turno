@@ -16,6 +16,7 @@ const TABS = [
 
 const DIOS_TABS = [
   { href: "/admin/empresas", label: "Empresas" },
+  { href: "/admin/cuentas", label: "Cuentas" },
   { href: "/admin/reportes", label: "Reportes" },
   { href: "/admin/sitio", label: "Sitio web" },
   { href: "/admin/planes", label: "Planes" },

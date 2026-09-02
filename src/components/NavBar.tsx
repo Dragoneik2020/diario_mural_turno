@@ -35,6 +35,7 @@ export default function NavBar({
     role === "dios"
       ? [
           { href: "/admin/empresas", label: "Empresas" },
+          { href: "/admin/cuentas", label: "Cuentas" },
           { href: "/admin/reportes", label: "Reportes" },
         ]
       : isManager
