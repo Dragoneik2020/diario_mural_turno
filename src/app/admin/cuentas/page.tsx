@@ -3,9 +3,25 @@ import { getSession } from "@/lib/auth";
 import { isDios } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
+import Avatar from "@/components/Avatar";
 import { prisma } from "@/lib/prisma";
+import { UserCog } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const ROLE_LABEL: Record<string, string> = {
+  dios: "DIOS",
+  superadmin: "Super Admin",
+  admin: "Admin",
+  worker: "Trabajador",
+};
+
+const ROLE_BADGE: Record<string, string> = {
+  dios: "!border-rose-400/30 !bg-rose-500/15 !text-rose-300",
+  superadmin: "!border-amber-400/30 !bg-amber-500/15 !text-amber-300",
+  admin: "!border-brand-400/30 !bg-brand-500/15 !text-brand-300",
+  worker: "!border-white/10 !bg-white/[0.06] !text-slate-300",
+};
 
 export default async function CuentasPage() {
   const session = await getSession();
@@ -15,120 +31,92 @@ export default async function CuentasPage() {
   const users = await prisma.user.findMany({
     include: {
       branch: {
-        include: {
-          company: true,
-        },
+        include: { company: { select: { name: true } } },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ role: "asc" }, { createdAt: "desc" }],
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen">
       <NavBar name={session.name} role={session.role} branchName={session.branchName} />
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Configuración de Cuentas</h1>
-          <p className="mt-2 text-slate-600">Gestiona todas las cuentas del sistema y sus roles</p>
+      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 rise">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Cuentas y roles</h1>
+          <p className="text-slate-500">
+            Cuenta DIOS: todas las cuentas del sistema con su rol, empresa y sucursal.
+          </p>
         </div>
 
-        <AdminTopTabs current="/admin/cuentas" superadmin={false} isDios={true} />
+        <AdminTopTabs current="/admin/cuentas" superadmin isDios />
 
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Todas las cuentas ({users.length})
-              </h2>
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                + Nueva cuenta
-              </button>
-            </div>
+        <section className="card !p-0 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
+            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-brand-600" />
+              Todas las cuentas ({users.length})
+            </h2>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Rol
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Empresa
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Sucursal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
+            <table className="table w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-[0.08em] text-slate-400">
+                  <th className="px-5 py-3 font-semibold">Usuario</th>
+                  <th className="px-5 py-3 font-semibold">Rol</th>
+                  <th className="px-5 py-3 font-semibold">Empresa</th>
+                  <th className="px-5 py-3 font-semibold">Sucursal</th>
+                  <th className="px-5 py-3 font-semibold">Estado</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-slate-900">{user.name}</div>
-                          <div className="text-sm text-slate-500">{user.email}</div>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={u.name} size="sm" />
+                        <div className="min-w-0">
+                          <div className="font-medium text-slate-800 truncate">{u.name}</div>
+                          <div className="text-xs text-slate-500 truncate">{u.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === "dios" ? "bg-purple-100 text-purple-800" :
-                        user.role === "superadmin" ? "bg-blue-100 text-blue-800" :
-                        user.role === "admin" ? "bg-green-100 text-green-800" :
-                        "bg-slate-100 text-slate-800"
-                      }`}>
-                        {user.role === "dios" ? "DIOS" :
-                         user.role === "superadmin" ? "Super Admin" :
-                         user.role === "admin" ? "Admin" :
-                         "Trabajador"}
+                    <td className="px-5 py-3">
+                      <span className={`badge ${ROLE_BADGE[u.role] ?? ROLE_BADGE.worker}`}>
+                        {ROLE_LABEL[u.role] ?? u.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {user.branch?.company?.name || "-"}
+                    <td className="px-5 py-3 text-slate-400">
+                      {u.branch?.company?.name || "—"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {user.branch?.name || "-"}
+                    <td className="px-5 py-3 text-slate-400">
+                      {u.branch?.name || "—"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}>
-                        {user.active ? "Activo" : "Inactivo"}
+                    <td className="px-5 py-3">
+                      <span
+                        className={`badge ${
+                          u.active
+                            ? "!border-emerald-400/30 !bg-emerald-500/15 !text-emerald-300"
+                            : "!border-red-400/30 !bg-red-500/15 !text-red-300"
+                        }`}
+                      >
+                        {u.active ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-3">
-                        Editar
-                      </button>
-                      {user.role !== "dios" && (
-                        <button className="text-red-600 hover:text-red-900">
-                          Eliminar
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-slate-400">
+                      No hay cuentas registradas.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
