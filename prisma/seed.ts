@@ -74,10 +74,11 @@ async function main() {
 
   const dios = await prisma.user.upsert({
     where: { email: "admin@demo.com" },
-    update: { role: "dios", branchId: null, name: "Cuenta DIOS" },
+    update: { role: "dios", branchId: null, name: "Cuenta DIOS", rut: "12345678-9" },
     create: {
       name: "Cuenta DIOS",
       email: "admin@demo.com",
+      rut: "12345678-9",
       password: adminPassword,
       role: "dios",
       department: "Dirección",
@@ -86,10 +87,11 @@ async function main() {
 
   const superRincon = await prisma.user.upsert({
     where: { email: "super@demo.com" },
-    update: { role: "superadmin", branchId: central.id },
+    update: { role: "superadmin", branchId: central.id, rut: "66666666-6" },
     create: {
       name: "Super Admin Rincon-Z",
       email: "super@demo.com",
+      rut: "66666666-6",
       password: adminPassword,
       role: "superadmin",
       department: "Dirección",
@@ -99,10 +101,11 @@ async function main() {
 
   const adminCentral = await prisma.user.upsert({
     where: { email: "central@demo.com" },
-    update: { role: "admin", branchId: central.id },
+    update: { role: "admin", branchId: central.id, rut: "55555555-5" },
     create: {
       name: "Admin Central",
       email: "central@demo.com",
+      rut: "55555555-5",
       password: adminPassword,
       role: "admin",
       department: "Dirección",
@@ -112,10 +115,11 @@ async function main() {
 
   const adminNorte = await prisma.user.upsert({
     where: { email: "norte@demo.com" },
-    update: { role: "admin", branchId: norte.id },
+    update: { role: "admin", branchId: norte.id, rut: "44444444-4" },
     create: {
       name: "Admin Norte",
       email: "norte@demo.com",
+      rut: "44444444-4",
       password: adminPassword,
       role: "admin",
       department: "Dirección",
@@ -124,12 +128,12 @@ async function main() {
   });
 
   const workers = [
-    { name: "Ana López", email: "ana@demo.com", department: "Ventas", cargo: "Vendedor", branchId: central.id },
-    { name: "Carlos Ruiz", email: "carlos@demo.com", department: "Almacén", cargo: "Técnico", branchId: central.id },
-    { name: "María Gómez", email: "maria@demo.com", department: "Atención al cliente", cargo: "Auxiliar", branchId: central.id },
-    { name: "Javier Martín", email: "javier@demo.com", department: "Ventas", cargo: "Vendedor", branchId: central.id },
-    { name: "Lucía Pérez", email: "lucia@demo.com", department: "Atención al cliente", cargo: "Auxiliar", branchId: norte.id },
-    { name: "Pedro Sánchez", email: "pedro@demo.com", department: "Almacén", cargo: "Técnico", branchId: norte.id },
+    { name: "Ana López", email: "ana@demo.com", rut: "11111111-1", department: "Ventas", cargo: "Vendedor", branchId: central.id },
+    { name: "Carlos Ruiz", email: "carlos@demo.com", rut: "22222222-2", department: "Almacén", cargo: "Técnico", branchId: central.id },
+    { name: "María Gómez", email: "maria@demo.com", rut: "33333333-3", department: "Atención al cliente", cargo: "Auxiliar", branchId: central.id },
+    { name: "Javier Martín", email: "javier@demo.com", rut: "77777777-7", department: "Ventas", cargo: "Vendedor", branchId: central.id },
+    { name: "Lucía Pérez", email: "lucia@demo.com", rut: "88888888-8", department: "Atención al cliente", cargo: "Auxiliar", branchId: norte.id },
+    { name: "Pedro Sánchez", email: "pedro@demo.com", rut: "99999999-9", department: "Almacén", cargo: "Técnico", branchId: norte.id },
   ];
 
   const announcementExamples = [
@@ -160,10 +164,11 @@ async function main() {
     for (const w of workers) {
       await prisma.user.upsert({
         where: { email: w.email },
-        update: { role: "worker", branchId: w.branchId },
+        update: { role: "worker", branchId: w.branchId, rut: w.rut },
         create: {
           name: w.name,
           email: w.email,
+          rut: w.rut,
           password: workerPassword,
           role: "worker",
           department: w.department,
@@ -247,6 +252,20 @@ async function main() {
     where: { branchId: null, role: { notIn: ["superadmin", "dios"] } },
     data: { branchId: central.id },
   });
+
+  // Asigna el RUT 17.969.468-9 a la cuenta DIOS real (juannretamal@hotmail.com) si existe.
+  const diosReal = await prisma.user.findUnique({
+    where: { email: "juannretamal@hotmail.com" },
+  });
+  if (diosReal) {
+    const rutUsed = await prisma.user.findUnique({ where: { rut: "17969468-9" } });
+    if (!rutUsed || rutUsed.id === diosReal.id) {
+      await prisma.user.update({
+        where: { id: diosReal.id },
+        data: { rut: "17969468-9", role: "dios" },
+      });
+    }
+  }
 
   // Backfill: turnos legacy heredan la sucursal de su trabajador.
   const legacyShifts = await prisma.shift.findMany({

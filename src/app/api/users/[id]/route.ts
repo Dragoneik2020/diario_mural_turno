@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { normalizeRut } from "@/lib/rut";
 import {
   requireUser,
   requireAdmin,
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
+  rut: z.string().optional().nullable(),
   password: z.string().min(6).optional(),
   role: z.enum(["worker", "admin", "superadmin"]).optional(),
   department: z.string().optional(),
@@ -95,10 +97,21 @@ export async function PATCH(
     if ("telegramChatId" in parsed)
       data.telegramChatId = parsed.telegramChatId ? parsed.telegramChatId.trim() : null;
 
+    let rutNorm: string | null | undefined;
+    if ("rut" in parsed) {
+      rutNorm = normalizeRut(parsed.rut);
+      data.rut = rutNorm;
+    }
+
     if (parsed.email) {
       const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
       if (exists && exists.id !== params.id)
         return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
+    }
+    if (rutNorm) {
+      const rutExists = await prisma.user.findUnique({ where: { rut: rutNorm } });
+      if (rutExists && rutExists.id !== params.id)
+        return NextResponse.json({ error: "El RUT ya está registrado" }, { status: 409 });
     }
 
     if (Object.keys(data).length === 0)
@@ -111,6 +124,7 @@ export async function PATCH(
         id: true,
         name: true,
         email: true,
+        rut: true,
         role: true,
         department: true,
         cargo: true,

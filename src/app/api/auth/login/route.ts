@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeRut } from "@/lib/rut";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -13,12 +14,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
-    if (!email || !password) {
+    const { rut, password } = await req.json();
+    const rutNorm = normalizeRut(rut);
+    if (!rutNorm || !password) {
       return NextResponse.json({ error: "Credenciales requeridas" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { rut: rutNorm } });
     if (!user || !user.active) {
       return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
     }
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       id: user.id,
       name: user.name,
       email: user.email,
+      rut: user.rut,
       role: user.role as AppRole,
       department: user.department,
       branchId: user.branchId,

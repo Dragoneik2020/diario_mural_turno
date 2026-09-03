@@ -22,7 +22,7 @@ export default async function PerfilPage() {
             <Avatar name={session.name} size="lg" />
             <div>
               <div className="font-semibold text-slate-900">{session.name}</div>
-              <div className="text-sm text-slate-500">{session.email}</div>
+              <div className="text-sm text-slate-500">{session.rut || session.email}</div>
             </div>
           </div>
           <ProfileForm

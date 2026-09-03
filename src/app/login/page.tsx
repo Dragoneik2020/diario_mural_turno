@@ -9,7 +9,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Diario de Turnos";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [rut, setRut] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ rut, password }),
     });
     setLoading(false);
     if (!res.ok) {
@@ -76,16 +76,16 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Email</label>
+              <label className="label">RUT</label>
               <input
                 className="input"
-                type="email"
-                value={email}
+                type="text"
+                value={rut}
                 onChange={(e) => {
-                  setEmail(e.target.value);
+                  setRut(e.target.value);
                   if (error) setError("");
                 }}
-                placeholder="tu@correo.com"
+                placeholder="12.345.678-9"
                 autoComplete="username"
                 required
               />
@@ -122,27 +122,27 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-slate-400">
-            <strong className="text-slate-100">Cuentas de demostración</strong>
+            <strong className="text-slate-100">Cuentas de demostración (ingresa con el RUT)</strong>
             <br />
             <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
               DIOS
             </span>
-            admin@demo.com / admin123
+            12.345.678-9 / admin123
             <br />
             <span className="badge !border-amber-400/30 !bg-amber-100 !text-amber-700 mr-1">
               Super Admin
             </span>
-            super@demo.com / admin123
+            66.666.666-6 / admin123
             <br />
             <span className="badge !border-brand-400/30 !bg-brand-100 !text-brand-700 mr-1">
               Admin
             </span>
-            central@demo.com / admin123
+            55.555.555-5 / admin123
             <br />
             <span className="badge !border-slate-400/30 !bg-slate-100 !text-slate-300 mr-1">
               Trabajador
             </span>
-            ana@demo.com / trabajador123
+            11.111.111-1 / trabajador123
           </div>
         </div>
       </div>

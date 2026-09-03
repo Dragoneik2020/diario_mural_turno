@@ -11,6 +11,7 @@ export interface WorkerRow {
   id: string;
   name: string;
   email: string;
+  rut?: string | null;
   role: string;
   department: string | null;
   cargo: string | null;
@@ -82,7 +83,14 @@ export default function WorkersManager({
     if (filterRole && u.role !== filterRole) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+      const rutQ = q.replace(/\./g, "").replace(/\s+/g, "");
+      const uRut = (u.rut || "").toLowerCase().replace(/\./g, "").replace(/\s+/g, "");
+      if (
+        !u.name.toLowerCase().includes(q) &&
+        !u.email.toLowerCase().includes(q) &&
+        !uRut.includes(rutQ)
+      )
+        return false;
     }
     return true;
   });
@@ -90,6 +98,7 @@ export default function WorkersManager({
   const blank = {
     name: "",
     email: "",
+    rut: "",
     password: "",
     role: "worker",
     department: "",
@@ -133,6 +142,7 @@ export default function WorkersManager({
     setForm({
       name: u.name,
       email: u.email,
+      rut: u.rut || "",
       password: "",
       role: u.role,
       department: u.department || "",
@@ -156,6 +166,7 @@ export default function WorkersManager({
       ? {
           name: form.name,
           email: form.email,
+          rut: form.rut || null,
           role: form.role,
           department: form.department || null,
           cargo: form.cargo || null,
@@ -253,7 +264,7 @@ export default function WorkersManager({
           <input
             id="user-search"
             className="input text-xs"
-            placeholder="Buscar por nombre o email…"
+            placeholder="Buscar por nombre, RUT o email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -364,6 +375,17 @@ export default function WorkersManager({
               <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
             <div>
+              <label className="label">RUT (usuario de acceso)</label>
+              <input
+                className="input"
+                type="text"
+                value={form.rut}
+                onChange={(e) => setForm({ ...form, rut: e.target.value })}
+                placeholder="12.345.678-9"
+              />
+              <p className="text-xs text-slate-400 mt-1">El RUT es el usuario para entrar a la app.</p>
+            </div>
+            <div>
               <label className="label">Contraseña {editing && "(dejar vacío para no cambiar)"}</label>
               <input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required={!editing} minLength={6} />
             </div>
@@ -449,6 +471,7 @@ export default function WorkersManager({
           <thead>
             <tr className="text-left text-slate-500 border-b border-slate-200">
               <th className="py-2 pr-2">Nombre</th>
+              <th className="py-2 pr-2">RUT</th>
               <th className="py-2 pr-2">Email</th>
               <th className="py-2 pr-2">Sucursal</th>
               <th className="py-2 pr-2">Cargo</th>
@@ -468,6 +491,7 @@ export default function WorkersManager({
                     <span>{u.name}</span>
                   </div>
                 </td>
+                <td className="py-2 pr-2 text-slate-500">{u.rut || "—"}</td>
                 <td className="py-2 pr-2 text-slate-500">{u.email}</td>
                 <td className="py-2 pr-2">
                   {superadmin ? (

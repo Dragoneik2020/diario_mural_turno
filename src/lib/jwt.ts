@@ -13,6 +13,7 @@ export interface Session {
   id: string;
   name: string;
   email: string;
+  rut?: string | null;
   role: AppRole;
   department?: string | null;
   branchId?: string | null;
@@ -25,6 +26,7 @@ export async function createToken(session: Session): Promise<string> {
     id: session.id,
     name: session.name,
     email: session.email,
+    rut: session.rut ?? null,
     role: session.role,
     department: session.department ?? null,
     branchId: session.branchId ?? null,
@@ -44,6 +46,7 @@ export async function verifyToken(token: string): Promise<Session | null> {
       id: payload.id as string,
       name: payload.name as string,
       email: payload.email as string,
+      rut: (payload.rut as string | null) ?? null,
       role: payload.role as AppRole,
       department: (payload.department as string | null) ?? null,
       branchId: (payload.branchId as string | null) ?? null,

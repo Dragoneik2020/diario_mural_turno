@@ -15,6 +15,7 @@ interface Props {
 interface PreviewRow {
   name: string;
   email: string;
+  rut: string;
   department: string;
   cargo: string;
   role: string;
@@ -110,6 +111,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
     const iAp1 = hasHeader ? idx(["apellido paterno"]) : -1;
     const iAp2 = hasHeader ? idx(["apellido materno"]) : -1;
     const iEmail = hasHeader ? idx(["email", "correo"]) : 1;
+    const iRut = hasHeader ? idx(["rut"]) : 2;
     const iDept = hasHeader ? idx(["departamento", "depto"]) : 2;
     const iCargo = hasHeader ? idx(["cargo"]) : 3;
     const iPass = hasHeader ? idx(["clave", "contraseña", "password"]) : 4;
@@ -137,6 +139,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
       const parts = [(r[iName] || "").trim(), ap1.trim(), ap2.trim()].filter(Boolean);
       const name = parts.join(" ");
       const email = (r[iEmail] || "").trim();
+      const rut = iRut >= 0 ? (r[iRut] || "").trim() : "";
       const department = (r[iDept] || "").trim();
       const cargo = (r[iCargo] || "").trim();
       const password = (r[iPass] || "").trim();
@@ -153,7 +156,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
           : sucursal && superadmin && !resolved
             ? "Sucursal no encontrada"
             : undefined;
-      return { name, email, department, cargo, role, password, sucursal, branchId: resolved, error: err };
+      return { name, email, rut, department, cargo, role, password, sucursal, branchId: resolved, error: err };
     });
   }
 
@@ -174,6 +177,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
       .map((p) => ({
         name: p.name,
         email: p.email,
+        rut: p.rut || undefined,
         department: p.department || undefined,
         cargo: p.cargo || undefined,
         role: p.role,
@@ -219,7 +223,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
             <p className="text-sm text-slate-500 mb-2">
               Usa la planilla <b>Planilla_trabajadores_ejemplo.xlsx</b> (o CSV): columnas{" "}
               <b>RUT, Nombre, Apellido Paterno, Apellido Materno, telefono, correo electronico, Sucursal, Cargo, Clave de acceso</b>.
-              La columna Sucursal asigna cada trabajador a su sucursal por nombre. RUT y teléfono son informativos.
+              La columna Sucursal asigna cada trabajador a su sucursal por nombre. El <b>RUT</b> es el usuario de acceso a la app; el teléfono es informativo.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -272,6 +276,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                   <thead>
                     <tr className="text-left text-slate-500 border-b">
                       <th className="py-1 px-2">Nombre</th>
+                      <th className="py-1 px-2">RUT</th>
                       <th className="py-1 px-2">Email</th>
                       <th className="py-1 px-2">Sucursal</th>
                       <th className="py-1 px-2">Cargo</th>
@@ -283,6 +288,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                     {preview.map((p, i) => (
                       <tr key={i} className="border-b border-slate-100">
                         <td className="py-1 px-2">{p.name}</td>
+                        <td className="py-1 px-2">{p.rut || "—"}</td>
                         <td className="py-1 px-2">{p.email}</td>
                         <td className="py-1 px-2">{p.sucursal || "—"}</td>
                         <td className="py-1 px-2">{p.cargo || "—"}</td>

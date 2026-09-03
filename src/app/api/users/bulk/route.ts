@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { normalizeRut } from "@/lib/rut";
 import { requireAdmin, isMultiBranch, writeBranchId, isDios } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 const rowSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
+  rut: z.string().optional().nullable(),
   password: z.string().min(6).optional(),
   role: z.enum(["worker", "admin"]).optional(),
   department: z.string().optional(),
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
       const { name, email, role, department, cargo } = parsed.data;
+      const rutNorm = normalizeRut(parsed.data.rut);
 
       // Sucursal efectiva de la fila: la del archivo, o la global elegida.
       let rowBranchId = branchId;
@@ -92,12 +95,20 @@ export async function POST(req: NextRequest) {
         errors.push({ email, error: "El email ya está registrado" });
         continue;
       }
+      if (rutNorm) {
+        const rutExists = await prisma.user.findUnique({ where: { rut: rutNorm } });
+        if (rutExists) {
+          errors.push({ email, error: "El RUT ya está registrado" });
+          continue;
+        }
+      }
       try {
         const hash = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
           data: {
             name,
             email,
+            rut: rutNorm,
             password: hash,
             role: role ?? "worker",
             department: department || null,

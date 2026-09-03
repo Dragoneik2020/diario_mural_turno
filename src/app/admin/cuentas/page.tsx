@@ -36,6 +36,7 @@ export default async function CuentasPage({
         id: true,
         name: true,
         email: true,
+        rut: true,
         role: true,
         department: true,
         cargo: true,
