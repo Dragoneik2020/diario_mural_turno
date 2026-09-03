@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { diosCompanyScope, isDios } from "@/lib/session";
+import {
+  branchWhere,
+  companyWhere,
+  diosCompanyScope,
+  canManageRole,
+  isDios,
+  isMultiBranch,
+} from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import WorkersManager from "@/components/WorkersManager";
@@ -8,16 +15,25 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function CuentasPage() {
+export default async function CuentasPage({
+  searchParams,
+}: {
+  searchParams: { sucursal?: string };
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!isDios(session)) redirect("/admin");
+  if (!canManageRole(session.role)) redirect("/dashboard");
 
-  const scopeCompanyId = diosCompanyScope();
+  const dios = isDios(session);
+  const superadmin = isMultiBranch(session);
+  const scopeCompanyId = dios ? diosCompanyScope() : null;
 
   const [users, branchesRaw, companies] = await Promise.all([
     prisma.user.findMany({
-      where: scopeCompanyId ? { companyId: scopeCompanyId } : {},
+      where:
+        dios && scopeCompanyId
+          ? { companyId: scopeCompanyId }
+          : { ...branchWhere(session) },
       orderBy: [{ role: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,
@@ -33,35 +49,50 @@ export default async function CuentasPage() {
       },
     }),
     prisma.branch.findMany({
-      where: scopeCompanyId ? { companyId: scopeCompanyId } : {},
+      where:
+        dios && scopeCompanyId
+          ? { companyId: scopeCompanyId }
+          : { ...companyWhere(session) },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, company: { select: { name: true } } },
     }),
-    prisma.company.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+    dios
+      ? prisma.company.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
   ]);
 
-  const branches = branchesRaw.map((b) => ({
-    id: b.id,
-    name: b.company?.name ? `${b.company.name} · ${b.name}` : b.name,
-  }));
+  const branches = dios
+    ? branchesRaw.map((b) => ({
+        id: b.id,
+        name: b.company?.name ? `${b.company.name} · ${b.name}` : b.name,
+      }))
+    : branchesRaw.map((b) => ({ id: b.id, name: b.name }));
 
   return (
     <div className="min-h-screen">
       <NavBar name={session.name} role={session.role} branchName={session.branchName} />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 rise">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Cuentas y roles</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Cuentas</h1>
           <p className="text-slate-500">
-            Crea, edita o elimina cuentas del sistema, asigna rol, jerarquía y sucursal.
+            Crea, edita o elimina cuentas y asigna rol, empresa, sucursal y departamento.
           </p>
         </div>
 
-        <AdminTopTabs current="/admin/cuentas" superadmin isDios />
+        <AdminTopTabs current="/admin/cuentas" superadmin={superadmin} isDios={dios} />
 
-        <WorkersManager users={users} branches={branches} companies={scopeCompanyId ? [] : companies} defaultCompanyId={scopeCompanyId ?? ""} superadmin isDios />
+        <WorkersManager
+          users={users}
+          branches={branches}
+          companies={dios && !scopeCompanyId ? companies : []}
+          defaultCompanyId={dios ? (scopeCompanyId ?? "") : ""}
+          defaultBranchId={superadmin ? searchParams?.sucursal ?? "" : ""}
+          superadmin={superadmin}
+          isDios={dios}
+        />
       </main>
     </div>
   );

@@ -6,7 +6,7 @@ import { Building2, DoorOpen } from "lucide-react";
 
 const TABS = [
   { href: "/admin", label: "Panel" },
-  { href: "/admin/trabajadores", label: "Trabajadores" },
+  { href: "/admin/cuentas", label: "Cuentas" },
   { href: "/admin/categorias", label: "Deptos. y cargos" },
   { href: "/admin/turnos", label: "Gestión de turnos" },
   { href: "/admin/muro", label: "Muro" },
@@ -27,7 +27,6 @@ const DIOS_SCOPED_TABS = [
   { href: "/admin/sucursales", label: "Sucursales" },
   { href: "/admin/categorias", label: "Deptos. y cargos" },
   { href: "/admin/turnos", label: "Gestión de turnos" },
-  { href: "/admin/trabajadores", label: "Trabajadores" },
 ];
 
 export default function AdminTopTabs({
