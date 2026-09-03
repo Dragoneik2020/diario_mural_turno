@@ -30,10 +30,7 @@ export default async function CuentasPage({
 
   const [users, branchesRaw, companies] = await Promise.all([
     prisma.user.findMany({
-      where:
-        dios && scopeCompanyId
-          ? { companyId: scopeCompanyId }
-          : { ...branchWhere(session) },
+      where: { ...branchWhere(session) },
       orderBy: [{ role: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,

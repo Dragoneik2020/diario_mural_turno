@@ -297,6 +297,18 @@ async function main() {
     data: { companyId: RINCONZ_COMPANY_ID },
   });
 
+  // Backfill: los trabajadores adoptan la empresa de su sucursal (migra cuentas legacy a empresa).
+  const usersToCompany = await prisma.user.findMany({
+    where: { branchId: { not: null }, companyId: null },
+    select: { id: true, branchId: true },
+  });
+  for (const u of usersToCompany) {
+    const branch = await prisma.branch.findUnique({ where: { id: u.branchId! } });
+    if (branch?.companyId) {
+      await prisma.user.update({ where: { id: u.id }, data: { companyId: branch.companyId } });
+    }
+  }
+
   await prisma.setting.upsert({
     where: { branchId_key: { branchId: GLOBAL, key: "shiftTypeLabels" } },
     update: {},
