@@ -80,6 +80,7 @@ model User {
     department    String?
     cargo         String?
     companyId     String?
+    telegramChatId String?
     active        Boolean        @default(true)
     branchId      String?
     branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)

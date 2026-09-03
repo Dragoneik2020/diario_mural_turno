@@ -40,6 +40,7 @@ export default async function CuentasPage({
         department: true,
         cargo: true,
         companyId: true,
+        telegramChatId: true,
         active: true,
         branchId: true,
         _count: { select: { shifts: true } },

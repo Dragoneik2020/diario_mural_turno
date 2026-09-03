@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
-import { DEFAULT_WHATSAPP, type WhatsAppConfig } from "@/lib/whatsapp";
+import { DEFAULT_TELEGRAM, type TelegramConfig } from "@/lib/telegram";
 
-export default function WhatsAppConfigEditor() {
-  const [config, setConfig] = useState<WhatsAppConfig | null>(null);
+export default function TelegramConfigEditor() {
+  const [config, setConfig] = useState<TelegramConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -14,10 +14,10 @@ export default function WhatsAppConfigEditor() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/whatsapp");
+      const res = await fetch("/api/admin/telegram");
       if (!res.ok) throw new Error();
       const d = await res.json();
-      setConfig(d.config || { ...DEFAULT_WHATSAPP });
+      setConfig(d.config || { ...DEFAULT_TELEGRAM });
     } catch {
       setError("No se pudo cargar la configuración.");
     } finally {
@@ -29,7 +29,7 @@ export default function WhatsAppConfigEditor() {
     load();
   }, []);
 
-  function set<K extends keyof WhatsAppConfig>(key: K, value: WhatsAppConfig[K]) {
+  function set<K extends keyof TelegramConfig>(key: K, value: TelegramConfig[K]) {
     setConfig((c) => (c ? { ...c, [key]: value } : c));
   }
 
@@ -39,7 +39,7 @@ export default function WhatsAppConfigEditor() {
     setSaved(false);
     setError("");
     try {
-      const res = await fetch("/api/admin/whatsapp", {
+      const res = await fetch("/api/admin/telegram", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config }),
@@ -81,57 +81,26 @@ export default function WhatsAppConfigEditor() {
             onChange={(e) => set("enabled", e.target.checked)}
           />
           <span>
-            <span className="block text-sm font-semibold text-white">Habilitar envío por WhatsApp</span>
+            <span className="block text-sm font-semibold text-white">Habilitar envío por Telegram</span>
             <span className="block text-xs text-slate-400">
-              Envía notificaciones de turnos por WhatsApp Cloud API.
+              Envía notificaciones de turnos por un bot de Telegram a cada trabajador.
             </span>
           </span>
         </label>
 
         <div>
-          <label className={labelCls}>Token de acceso (Bearer)</label>
+          <label className={labelCls}>Token del bot (de @BotFather)</label>
           <input
             className={`${inputCls} font-mono`}
             type="password"
-            placeholder="EAAG..."
-            value={config.accessToken}
-            onChange={(e) => set("accessToken", e.target.value)}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className={labelCls}>Phone Number ID (WhatsApp)</label>
-            <input
-              className={inputCls}
-              placeholder="123456789012345"
-              value={config.phoneNumberId}
-              onChange={(e) => set("phoneNumberId", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Número emisor visible</label>
-            <input
-              className={inputCls}
-              placeholder="+56 9 1234 5678"
-              value={config.senderPhone}
-              onChange={(e) => set("senderPhone", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Webhook verify token</label>
-          <input
-            className={`${inputCls} font-mono`}
-            placeholder="Clave para validar el webhook de Meta"
-            value={config.webhookSecret}
-            onChange={(e) => set("webhookSecret", e.target.value)}
+            placeholder="123456:ABC-DEF..."
+            value={config.botToken}
+            onChange={(e) => set("botToken", e.target.value)}
           />
         </div>
 
         <div>
-          <label className={labelCls}>Plantilla del mensaje</label>
+          <label className={labelCls}>Plantilla al asignar turno</label>
           <textarea
             rows={5}
             className={inputCls}
@@ -141,6 +110,24 @@ export default function WhatsAppConfigEditor() {
           <p className="mt-1 text-xs text-slate-500">
             Variables: {"{nombre}"}, {"{tipo}"}, {"{fecha}"}, {"{inicio}"}, {"{fin}"}.
           </p>
+        </div>
+
+        <div>
+          <label className={labelCls}>Plantilla de recordatorio matinal</label>
+          <textarea
+            rows={5}
+            className={inputCls}
+            value={config.morningTemplate}
+            onChange={(e) => set("morningTemplate", e.target.value)}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Variables: {"{nombre}"}, {"{tipo}"}, {"{inicio}"}, {"{fin}"}.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-3.5 py-2.5 text-xs text-blue-200">
+          Cada trabajador debe tener su Chat ID de Telegram configurado en su cuenta (sección Cuentas) para
+          recibir notificaciones.
         </div>
       </section>
 

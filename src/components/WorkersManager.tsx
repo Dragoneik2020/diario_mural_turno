@@ -15,6 +15,7 @@ export interface WorkerRow {
   department: string | null;
   cargo: string | null;
   companyId?: string | null;
+  telegramChatId?: string | null;
   active: boolean;
   branchId?: string | null;
   _count: { shifts: number };
@@ -93,6 +94,7 @@ export default function WorkersManager({
     role: "worker",
     department: "",
     cargo: "",
+    telegramChatId: "",
     active: true,
     companyId: defaultCompanyId,
     branchId: defaultBranchId || branches[0]?.id || "",
@@ -135,6 +137,7 @@ export default function WorkersManager({
       role: u.role,
       department: u.department || "",
       cargo: u.cargo || "",
+      telegramChatId: u.telegramChatId || "",
       active: u.active,
       companyId: u.companyId || "",
       branchId: u.branchId ?? defaultBranchId ?? branches[0]?.id ?? "",
@@ -156,6 +159,7 @@ export default function WorkersManager({
           role: form.role,
           department: form.department || null,
           cargo: form.cargo || null,
+          telegramChatId: form.telegramChatId || null,
           active: form.active,
           ...(form.password ? { password: form.password } : {}),
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
@@ -167,6 +171,7 @@ export default function WorkersManager({
           ...form,
           department: form.department || null,
           cargo: form.cargo || null,
+          telegramChatId: form.telegramChatId || null,
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
           ...(isDios && (form.companyId || defaultCompanyId)
             ? { companyId: defaultCompanyId || form.companyId }
@@ -381,6 +386,16 @@ export default function WorkersManager({
               </select>
             </div>
             <div>
+              <label className="label">Telegram Chat ID</label>
+              <input
+                className="input"
+                placeholder="Ej: 123456789"
+                value={form.telegramChatId}
+                onChange={(e) => setForm({ ...form, telegramChatId: e.target.value })}
+              />
+              <p className="text-xs text-slate-400 mt-1">Para recibir notificaciones por Telegram.</p>
+            </div>
+            <div>
               <label className="label">Rol</label>
               <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as any })}>
                 <option value="worker">Trabajador</option>
@@ -438,6 +453,7 @@ export default function WorkersManager({
               <th className="py-2 pr-2">Sucursal</th>
               <th className="py-2 pr-2">Cargo</th>
               <th className="py-2 pr-2">Rol</th>
+              <th className="py-2 pr-2">Telegram</th>
               <th className="py-2 pr-2">Turnos</th>
               <th className="py-2 pr-2">Estado</th>
               <th className="py-2"></th>
@@ -481,6 +497,13 @@ export default function WorkersManager({
                   <span className={`badge ${isChooseable(u.role) ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600"}`}>
                     {roleLabel(u.role)}
                   </span>
+                </td>
+                <td className="py-2 pr-2">
+                  {u.telegramChatId ? (
+                    <span className="badge bg-sky-100 text-sky-700">Conectado</span>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
                 </td>
                 <td className="py-2 pr-2 text-slate-500">{u._count.shifts}</td>
                 <td className="py-2 pr-2">

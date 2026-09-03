@@ -4,7 +4,7 @@ import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import EmailNotificationsEditor from "@/components/EmailNotificationsEditor";
-import WhatsAppConfigEditor from "@/components/WhatsAppConfigEditor";
+import TelegramConfigEditor from "@/components/TelegramConfigEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export default async function NotificacionesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Notificaciones</h1>
           <p className="text-slate-500">
-            Configura cómo avisar a los trabajadores al asignarles turnos, por correo y por WhatsApp.
+            Configura cómo avisar a los trabajadores al asignarles turnos, por correo y por Telegram.
           </p>
         </div>
 
@@ -39,8 +39,8 @@ export default async function NotificacionesPage() {
 
         {dios && (
           <div>
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">WhatsApp</h2>
-            <WhatsAppConfigEditor />
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Telegram</h2>
+            <TelegramConfigEditor />
           </div>
         )}
       </main>

@@ -354,6 +354,23 @@ async function main() {
     },
   });
 
+  await prisma.setting.upsert({
+    where: { branchId_key: { branchId: GLOBAL, key: "smtp" } },
+    update: {},
+    create: {
+      branchId: GLOBAL,
+      key: "smtp",
+      value: JSON.stringify({
+        host: "mailu.rincon-z.cl",
+        port: 587,
+        secure: false,
+        user: "admin@rincon-z.cl",
+        pass: "t6m01a8wzkjaqeposvofsdayuetl1spy",
+        from: "Diario Mural de Turnos <admin@rincon-z.cl>",
+      }),
+    },
+  });
+
   console.log("Seed completado.");
   console.log("Cuenta DIOS: admin@demo.com / admin123");
   console.log("Super Admin (empresa): super@demo.com / admin123");

@@ -20,6 +20,7 @@ const userUpdateSchema = z.object({
   role: z.enum(["worker", "admin", "superadmin"]).optional(),
   department: z.string().optional(),
   cargo: z.string().optional(),
+  telegramChatId: z.string().optional().nullable(),
   active: z.boolean().optional(),
   branchId: z.string().optional().nullable(),
   companyId: z.string().optional(),
@@ -91,6 +92,8 @@ export async function PATCH(
       data.branchId = parsed.branchId ? parsed.branchId : null;
     if ("companyId" in parsed && isRoot)
       data.companyId = parsed.companyId || null;
+    if ("telegramChatId" in parsed)
+      data.telegramChatId = parsed.telegramChatId ? parsed.telegramChatId.trim() : null;
 
     if (parsed.email) {
       const exists = await prisma.user.findUnique({ where: { email: parsed.email } });

@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, fmtTime } from "@/lib/format";
+import { notifyTelegramShift } from "@/lib/telegram";
 import {
   getEmailNotifications,
   getShiftTypeLabels,
@@ -95,7 +96,9 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
   try {
     const shift = await prisma.shift.findUnique({
       where: { id: shiftId },
-      include: { user: { select: { name: true, email: true, cargo: true, role: true } } },
+      include: {
+        user: { select: { name: true, email: true, cargo: true, role: true, telegramChatId: true } },
+      },
     });
     if (!shift || shift.user.role === "admin" || shift.user.role === "superadmin" || shift.user.role === "dios") return;
     const labels = await getShiftTypeLabels(shift.branchId);
@@ -105,6 +108,13 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
       labels[shift.type] ?? shift.type,
       template,
       shift.branchId
+    );
+    await notifyTelegramShift(
+      { name: shift.user.name, telegramChatId: shift.user.telegramChatId },
+      shift,
+      labels[shift.type] ?? shift.type,
+      shift.branchId,
+      template
     );
   } catch {
     /* notificación opcional */
