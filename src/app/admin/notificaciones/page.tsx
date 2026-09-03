@@ -4,6 +4,7 @@ import { canManageRole, isDios, isMultiBranch } from "@/lib/session";
 import NavBar from "@/components/NavBar";
 import AdminTopTabs from "@/components/AdminTopTabs";
 import EmailNotificationsEditor from "@/components/EmailNotificationsEditor";
+import WhatsAppConfigEditor from "@/components/WhatsAppConfigEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export default async function NotificacionesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!canManageRole(session.role)) redirect("/dashboard");
+
+  const dios = isDios(session);
 
   return (
     <div className="min-h-screen">
@@ -22,12 +25,24 @@ export default async function NotificacionesPage() {
       <main className="mx-auto max-w-3xl px-4 py-6 space-y-6 rise">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Notificaciones</h1>
-          <p className="text-slate-500">Configura cómo avisar a los trabajadores al asignarles turnos.</p>
+          <p className="text-slate-500">
+            Configura cómo avisar a los trabajadores al asignarles turnos, por correo y por WhatsApp.
+          </p>
         </div>
 
-        <AdminTopTabs current="/admin/notificaciones" superadmin={isMultiBranch(session)} isDios={isDios(session)} />
+        <AdminTopTabs current="/admin/notificaciones" superadmin={isMultiBranch(session)} isDios={dios} />
 
-        <EmailNotificationsEditor />
+        <div>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Correo electrónico</h2>
+          <EmailNotificationsEditor />
+        </div>
+
+        {dios && (
+          <div>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">WhatsApp</h2>
+            <WhatsAppConfigEditor />
+          </div>
+        )}
       </main>
     </div>
   );

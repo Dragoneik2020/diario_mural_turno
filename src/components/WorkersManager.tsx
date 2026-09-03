@@ -48,6 +48,7 @@ export default function WorkersManager({
   superadmin = false,
   isDios = false,
   defaultBranchId = "",
+  defaultCompanyId = "",
 }: {
   users: WorkerRow[];
   branches?: BranchOpt[];
@@ -55,6 +56,7 @@ export default function WorkersManager({
   superadmin?: boolean;
   isDios?: boolean;
   defaultBranchId?: string;
+  defaultCompanyId?: string;
 }) {
   const router = useRouter();
   const [list, setList] = useState<WorkerRow[]>(users);
@@ -65,13 +67,17 @@ export default function WorkersManager({
   const [cargos, setCargos] = useState<string[]>([]);
   const [departamentos, setDepartamentos] = useState<string[]>([]);
   const [filterBranch, setFilterBranch] = useState(defaultBranchId);
+  const [filterCompany, setFilterCompany] = useState("");
   const [filterRole, setFilterRole] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
   const [search, setSearch] = useState("");
   const [busyAssign, setBusyAssign] = useState<string | null>(null);
 
   const visible = list.filter((u) => {
+    if (filterCompany && u.companyId !== filterCompany) return false;
     if (filterBranch === "__none__" ? !!u.branchId : filterBranch && u.branchId !== filterBranch)
       return false;
+    if (filterDepartment && u.department !== filterDepartment) return false;
     if (filterRole && u.role !== filterRole) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -88,7 +94,7 @@ export default function WorkersManager({
     department: "",
     cargo: "",
     active: true,
-    companyId: "",
+    companyId: defaultCompanyId,
     branchId: defaultBranchId || branches[0]?.id || "",
   };
   const [form, setForm] = useState({ ...blank });
@@ -153,14 +159,18 @@ export default function WorkersManager({
           active: form.active,
           ...(form.password ? { password: form.password } : {}),
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
-          ...(isDios && form.companyId ? { companyId: form.companyId } : {}),
+          ...(isDios && (form.companyId || defaultCompanyId)
+            ? { companyId: defaultCompanyId || form.companyId }
+            : {}),
         }
       : {
           ...form,
           department: form.department || null,
           cargo: form.cargo || null,
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
-          ...(isDios && form.companyId ? { companyId: form.companyId } : {}),
+          ...(isDios && (form.companyId || defaultCompanyId)
+            ? { companyId: defaultCompanyId || form.companyId }
+            : {}),
         };
 
     const res = await fetch(url, {
@@ -220,7 +230,7 @@ export default function WorkersManager({
   return (
     <section className="card">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-slate-800 flex items-center gap-2"><Users className="h-5 w-5 text-brand-600" /> Trabajadores</h2>
+        <h2 className="font-semibold text-slate-800 flex items-center gap-2"><Users className="h-5 w-5 text-brand-600" /> Cuentas</h2>
         <button className="btn-primary px-3 py-1.5 text-sm" onClick={openCreate}>
           + Nuevo
         </button>
@@ -243,6 +253,62 @@ export default function WorkersManager({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        {isDios && companies.length > 0 && (
+          <div>
+            <label className="sr-only" htmlFor="company-filter">Filtrar por empresa</label>
+            <select
+              id="company-filter"
+              className="input !w-auto text-xs"
+              value={filterCompany}
+              onChange={(e) => {
+                setFilterCompany(e.target.value);
+                setFilterBranch("");
+              }}
+            >
+              <option value="">Todas las empresas</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {superadmin && branches.length > 0 && (
+          <div>
+            <label className="sr-only" htmlFor="branch-filter">Filtrar por sucursal</label>
+            <select
+              id="branch-filter"
+              className="input !w-auto text-xs"
+              value={filterBranch}
+              onChange={(e) => setFilterBranch(e.target.value)}
+            >
+              <option value="">Todas las sucursales</option>
+              <option value="__none__">Sin sucursal</option>
+              {branches.filter((b) => {
+                if (!filterCompany) return true;
+                const sel = companies.find((c) => c.id === filterCompany);
+                if (!sel) return true;
+                const [prefix] = b.name.split("·");
+                return prefix.trim() === sel.name;
+              }).map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="sr-only" htmlFor="dept-filter">Filtrar por departamento</label>
+          <select
+            id="dept-filter"
+            className="input !w-auto text-xs"
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+          >
+            <option value="">Todos los departamentos</option>
+            {departamentos.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="sr-only" htmlFor="role-filter">Filtrar por rol</label>
           <select
@@ -258,31 +324,16 @@ export default function WorkersManager({
             <option value="worker">Trabajador</option>
           </select>
         </div>
-        {superadmin && branches.length > 0 && (
-          <div>
-            <label className="sr-only" htmlFor="branch-filter">Filtrar por sucursal</label>
-            <select
-              id="branch-filter"
-              className="input !w-auto text-xs"
-              value={filterBranch}
-              onChange={(e) => setFilterBranch(e.target.value)}
-            >
-              <option value="">Todas las sucursales</option>
-              <option value="__none__">Sin sucursal</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {(search || filterRole || filterBranch) && (
+        {(search || filterCompany || filterBranch || filterDepartment || filterRole) && (
           <button
             type="button"
             className="btn-ghost text-xs"
             onClick={() => {
               setSearch("");
-              setFilterRole("");
+              setFilterCompany("");
               setFilterBranch("");
+              setFilterDepartment("");
+              setFilterRole("");
             }}
           >
             Limpiar

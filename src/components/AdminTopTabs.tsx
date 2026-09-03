@@ -14,13 +14,20 @@ const TABS = [
   { href: "/admin/ajustes", label: "Ajustes" },
 ];
 
-const DIOS_TABS = [
+const DIOS_GLOBAL_TABS = [
   { href: "/admin/empresas", label: "Empresas" },
-  { href: "/admin/cuentas", label: "Cuentas" },
-  { href: "/admin/reportes", label: "Reportes" },
   { href: "/admin/sitio", label: "Sitio web" },
   { href: "/admin/planes", label: "Planes" },
-  { href: "/admin/whatsapp", label: "WhatsApp" },
+  { href: "/admin/notificaciones", label: "Notificaciones" },
+];
+
+const DIOS_SCOPED_TABS = [
+  { href: "/admin/cuentas", label: "Cuentas" },
+  { href: "/admin/reportes", label: "Reportes" },
+  { href: "/admin/sucursales", label: "Sucursales" },
+  { href: "/admin/categorias", label: "Deptos. y cargos" },
+  { href: "/admin/turnos", label: "Gestión de turnos" },
+  { href: "/admin/trabajadores", label: "Trabajadores" },
 ];
 
 export default function AdminTopTabs({
@@ -56,9 +63,11 @@ export default function AdminTopTabs({
     }
   }
 
-  const extra = isDios ? DIOS_TABS : superadmin ? [{ href: "/admin/sucursales", label: "Sucursales" }] : [];
+  const extra = isDios ? [] : superadmin ? [{ href: "/admin/sucursales", label: "Sucursales" }] : [];
   const tabs = isDios
-    ? DIOS_TABS
+    ? scope
+      ? DIOS_SCOPED_TABS
+      : DIOS_GLOBAL_TABS
     : extra.length > 0
       ? [
           ...TABS.slice(0, 2),
