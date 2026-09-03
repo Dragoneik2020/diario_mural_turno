@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 
 interface Props {
   onDone: () => void;
-  branches?: { id: string; name: string }[];
+  branches?: { id: string; name: string; company?: string }[];
   superadmin?: boolean;
   defaultBranchId?: string;
 }
@@ -21,6 +21,7 @@ interface PreviewRow {
   password: string;
   sucursal: string;
   branchId?: string;
+  companyId?: string;
   error?: string;
 }
 

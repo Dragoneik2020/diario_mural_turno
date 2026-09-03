@@ -22,6 +22,7 @@ const userUpdateSchema = z.object({
   cargo: z.string().optional(),
   active: z.boolean().optional(),
   branchId: z.string().optional().nullable(),
+  companyId: z.string().optional(),
 });
 
 export async function PATCH(
@@ -72,18 +73,24 @@ export async function PATCH(
         );
     }
 
+    // Solo DIOS puede editar el companyId y rol.
+    if ("companyId" in parsed && !isRoot) delete (parsed as any).companyId;
+
     // Un trabajador solo puede editar sus datos básicos.
     if (!isManager) {
       delete (parsed as any).role;
       delete (parsed as any).active;
       delete (parsed as any).cargo;
       delete (parsed as any).branchId;
+      delete (parsed as any).companyId;
     }
 
     const data: any = { ...parsed };
     if (parsed.password) data.password = await bcrypt.hash(parsed.password, 10);
     if ("branchId" in parsed && isSuper)
       data.branchId = parsed.branchId ? parsed.branchId : null;
+    if ("companyId" in parsed && isRoot)
+      data.companyId = parsed.companyId || null;
 
     if (parsed.email) {
       const exists = await prisma.user.findUnique({ where: { email: parsed.email } });

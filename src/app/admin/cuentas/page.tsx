@@ -13,7 +13,7 @@ export default async function CuentasPage() {
   if (!session) redirect("/login");
   if (!isDios(session)) redirect("/admin");
 
-  const [users, branchesRaw] = await Promise.all([
+  const [users, branchesRaw, companies] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ role: "asc" }, { createdAt: "desc" }],
       select: {
@@ -23,6 +23,7 @@ export default async function CuentasPage() {
         role: true,
         department: true,
         cargo: true,
+        companyId: true,
         active: true,
         branchId: true,
         _count: { select: { shifts: true } },
@@ -31,6 +32,10 @@ export default async function CuentasPage() {
     prisma.branch.findMany({
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, company: { select: { name: true } } },
+    }),
+    prisma.company.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
     }),
   ]);
 
@@ -46,13 +51,13 @@ export default async function CuentasPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Cuentas y roles</h1>
           <p className="text-slate-500">
-            Cuenta DIOS: crea, edita o elimina cualquier cuenta del sistema y asigna su rol y sucursal.
+            Cuenta DIOS: crea, edita o elimina cualquier cuenta del sistema, asigna empresa, rol y sucursal.
           </p>
         </div>
 
         <AdminTopTabs current="/admin/cuentas" superadmin isDios />
 
-        <WorkersManager users={users} branches={branches} superadmin isDios />
+        <WorkersManager users={users} branches={branches} companies={companies} superadmin isDios />
       </main>
     </div>
   );

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       department: user.department,
       branchId: user.branchId,
       branchName: branch?.name ?? null,
-      companyId: branch?.companyId ?? null,
+      companyId: user.companyId ?? branch?.companyId ?? null,
     };
     const token = await createToken(session);
 

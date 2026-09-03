@@ -15,6 +15,7 @@ const userCreateSchema = z.object({
   cargo: z.string().optional(),
   active: z.boolean().default(true),
   branchId: z.string().optional(),
+  companyId: z.string().optional(),
 });
 
 const userUpdateSchema = z.object({
@@ -78,7 +79,14 @@ export async function POST(req: NextRequest) {
     // La sucursal destino según el rol: dios/superadmin pueden elegirla
     // (el superadmin solo dentro de su empresa; dios en modo empresa también).
     const branchId = writeBranchId(session, parsed.branchId);
-    const companyId = effectiveCompanyId(session);
+
+    // Para DIOS: companyId puede venir directo del body, o derivarse de la sucursal.
+    const reqCompanyId = isDiosUser ? parsed.companyId : null;
+    const companyId = reqCompanyId
+      || (branchId
+        ? await prisma.branch.findUnique({ where: { id: branchId } }).then(b => b?.companyId ?? null)
+        : effectiveCompanyId(session));
+
     if (branchId && companyId) {
       const branch = await prisma.branch.findFirst({
         where: { id: branchId, companyId },
@@ -124,6 +132,7 @@ export async function POST(req: NextRequest) {
         cargo: parsed.cargo,
         active: parsed.active,
         branchId,
+        companyId: companyId || null,
       },
       select: {
         id: true,

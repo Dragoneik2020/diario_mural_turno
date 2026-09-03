@@ -72,16 +72,17 @@ model Branch {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  password      String
-  role          String         @default("worker")
-  department    String?
-  cargo         String?
-  active        Boolean        @default(true)
-  branchId      String?
-  branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
+    id            String         @id @default(cuid())
+    name          String
+    email         String         @unique
+    password      String
+    role          String         @default("worker")
+    department    String?
+    cargo         String?
+    companyId     String?
+    active        Boolean        @default(true)
+    branchId      String?
+    branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   shifts        Shift[]

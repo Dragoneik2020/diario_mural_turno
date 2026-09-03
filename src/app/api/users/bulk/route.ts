@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, isMultiBranch, writeBranchId } from "@/lib/session";
+import { requireAdmin, isMultiBranch, writeBranchId, isDios } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ const rowSchema = z.object({
   department: z.string().optional(),
   cargo: z.string().optional(),
   branchId: z.string().optional(),
+  companyId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -22,8 +23,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
     const defaultPassword: string | undefined = body.defaultPassword;
+    const isDiosUser = isDios(session);
     const isSuper = isMultiBranch(session);
     const branchId = writeBranchId(session, isSuper ? body.branchId : null);
+    const globalCompanyId = isDiosUser ? body.companyId : null;
 
     if (branchId && session.role === "superadmin") {
       const branch = await prisma.branch.findFirst({
@@ -46,6 +49,10 @@ export async function POST(req: NextRequest) {
 
       // Sucursal efectiva de la fila: la del archivo, o la global elegida.
       let rowBranchId = branchId;
+      let rowCompanyId: string | null = globalCompanyId || null;
+      if (isDiosUser && parsed.data.companyId) {
+        rowCompanyId = parsed.data.companyId;
+      }
       if (isSuper && parsed.data.branchId && parsed.data.branchId !== branchId) {
         if (session.role === "superadmin") {
           const b = await prisma.branch.findFirst({
@@ -57,6 +64,22 @@ export async function POST(req: NextRequest) {
           }
         }
         rowBranchId = parsed.data.branchId;
+      }
+      // Validar sucursal contra companyId si ambos están presentes
+      if (rowBranchId && rowCompanyId && isDiosUser) {
+        const b = await prisma.branch.findFirst({
+          where: { id: rowBranchId, companyId: rowCompanyId },
+        });
+        if (!b) {
+          errors.push({ email, error: "La sucursal no pertenece a la empresa seleccionada" });
+          continue;
+        }
+        // La sucursal coincide con la empresa, así que companyId ya está bien
+      }
+      // Derivar companyId de la sucursal si no se proveyó
+      if (!rowCompanyId && rowBranchId) {
+        const b = await prisma.branch.findUnique({ where: { id: rowBranchId } });
+        rowCompanyId = b?.companyId ?? null;
       }
 
       const password = parsed.data.password || defaultPassword;
@@ -81,6 +104,7 @@ export async function POST(req: NextRequest) {
             cargo: cargo || null,
             active: true,
             branchId: rowBranchId,
+            companyId: rowCompanyId,
           },
           select: { id: true, name: true, email: true },
         });

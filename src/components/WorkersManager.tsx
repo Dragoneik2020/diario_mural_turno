@@ -14,12 +14,18 @@ export interface WorkerRow {
   role: string;
   department: string | null;
   cargo: string | null;
+  companyId?: string | null;
   active: boolean;
   branchId?: string | null;
   _count: { shifts: number };
 }
 
 export interface BranchOpt {
+  id: string;
+  name: string;
+}
+
+export interface CompanyOpt {
   id: string;
   name: string;
 }
@@ -38,12 +44,14 @@ function isChooseable(r: string): boolean {
 export default function WorkersManager({
   users,
   branches = [],
+  companies = [],
   superadmin = false,
   isDios = false,
   defaultBranchId = "",
 }: {
   users: WorkerRow[];
   branches?: BranchOpt[];
+  companies?: CompanyOpt[];
   superadmin?: boolean;
   isDios?: boolean;
   defaultBranchId?: string;
@@ -80,9 +88,19 @@ export default function WorkersManager({
     department: "",
     cargo: "",
     active: true,
+    companyId: "",
     branchId: defaultBranchId || branches[0]?.id || "",
   };
   const [form, setForm] = useState({ ...blank });
+
+  const formBranches = form.companyId
+    ? branches.filter((b) => {
+        const sel = companies.find((c) => c.id === form.companyId);
+        if (!sel) return true;
+        const [prefix] = b.name.split("·");
+        return prefix.trim() === sel.name;
+      })
+    : branches;
 
   useEffect(() => {
     fetch("/api/settings/cargos")
@@ -112,6 +130,7 @@ export default function WorkersManager({
       department: u.department || "",
       cargo: u.cargo || "",
       active: u.active,
+      companyId: u.companyId || "",
       branchId: u.branchId ?? defaultBranchId ?? branches[0]?.id ?? "",
     });
     setShowForm(true);
@@ -134,12 +153,14 @@ export default function WorkersManager({
           active: form.active,
           ...(form.password ? { password: form.password } : {}),
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
+          ...(isDios && form.companyId ? { companyId: form.companyId } : {}),
         }
       : {
           ...form,
           department: form.department || null,
           cargo: form.cargo || null,
           ...(superadmin && form.branchId ? { branchId: form.branchId } : {}),
+          ...(isDios && form.companyId ? { companyId: form.companyId } : {}),
         };
 
     const res = await fetch(url, {
@@ -316,12 +337,25 @@ export default function WorkersManager({
                 {isDios && <option value="superadmin">Super Admin (dueño de empresa)</option>}
               </select>
             </div>
+            {isDios && companies.length > 0 && (
+              <div>
+                <label className="label">Empresa</label>
+                <select className="input" value={form.companyId} onChange={(e) => {
+                  setForm({ ...form, companyId: e.target.value, branchId: "" });
+                }}>
+                  <option value="">— sin empresa</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {superadmin && (
               <div>
                 <label className="label">Sucursal</label>
                 <select className="input" value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
-                  {branches.length === 0 && <option value="">Sin sucursales</option>}
-                  {branches.map((b) => (
+                  {formBranches.length === 0 && <option value="">Sin sucursales</option>}
+                  {formBranches.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
