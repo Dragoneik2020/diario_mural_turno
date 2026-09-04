@@ -31,11 +31,14 @@ export const metadata: Metadata = {
   },
   description:
     "Diario mural de turnos para planificar, asignar y comunicar los turnos de tu equipo.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#050510",
 };
 

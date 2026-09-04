@@ -5,6 +5,7 @@ import NavBar from "@/components/NavBar";
 import WorkerDashboardTabs from "@/components/WorkerDashboardTabs";
 import MuralPanel from "@/components/MuralPanel";
 import Avatar from "@/components/Avatar";
+import PushPermissionButton from "@/components/PushPermissionButton";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,16 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-6 rise">
         <div className="flex items-center gap-3">
           <Avatar name={session.name} size="lg" />
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-slate-900">
               Hola, {session.name}
             </h1>
             <p className="text-slate-500">
               Tus turnos personales y el calendario de todo el equipo.
             </p>
+            <div className="mt-3">
+              <PushPermissionButton />
+            </div>
           </div>
         </div>
 

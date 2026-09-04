@@ -71,7 +71,7 @@ export default function NavBar({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                  className={`min-h-11 shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
                   pathname === l.href
                     ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
                     : "text-slate-300 hover:bg-white/10"
@@ -82,7 +82,7 @@ export default function NavBar({
             ))}
             <Link
               href="/perfil"
-              className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                className={`min-h-11 shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full text-sm font-medium transition ${
                 pathname === "/perfil"
                   ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
                   : "text-slate-300 hover:bg-white/10"

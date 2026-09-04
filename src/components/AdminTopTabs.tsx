@@ -99,7 +99,7 @@ export default function AdminTopTabs({
           <Link
             key={t.href}
             href={t.href}
-            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
               current === t.href
                 ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow"
                 : "text-slate-300 hover:bg-white/10"

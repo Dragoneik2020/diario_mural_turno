@@ -24,6 +24,7 @@ html,
 body {
   padding: 0;
   margin: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -38,6 +39,15 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 ::selection {
@@ -138,7 +148,7 @@ table {
     filter: brightness(1.1);
   }
   .input {
-    @apply w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-brand-400/60 focus:ring-2 focus:ring-brand-500/20;
+    @apply min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-base text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-brand-400/60 focus:ring-2 focus:ring-brand-500/20 sm:text-sm;
   }
   .label {
     @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400;
@@ -352,5 +362,15 @@ p {
   }
   * {
     transition: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .table {
+    min-width: 42rem;
   }
 }

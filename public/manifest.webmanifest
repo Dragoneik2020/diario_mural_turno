@@ -1,0 +1,19 @@
+{
+  "name": "Diario de Turnos",
+  "short_name": "Turnos",
+  "description": "Calendario y avisos de turnos de tu equipo.",
+  "lang": "es-CL",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#050510",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

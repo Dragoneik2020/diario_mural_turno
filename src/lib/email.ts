@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { notifyTelegramShift } from "@/lib/telegram";
+import { sendPushToUser } from "@/lib/push";
 import {
   getEmailNotifications,
   getShiftTypeLabels,
@@ -116,6 +117,12 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
       shift.branchId,
       template
     );
+    await sendPushToUser(shift.userId, {
+      title: template === "morning" ? "Recordatorio de turno" : "Nuevo turno asignado",
+      body: `${shift.user.name}: ${labels[shift.type] ?? shift.type} · ${fmtDate(new Date(shift.date))} · ${fmtTime(new Date(shift.start))}-${fmtTime(new Date(shift.end))}`,
+      url: "/dashboard",
+      tag: `shift-${shift.id}-${template}`,
+    });
   } catch {
     /* notificación opcional */
   }
