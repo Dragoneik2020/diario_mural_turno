@@ -99,9 +99,11 @@ export async function notifyShiftById(shiftId: string, template: Template = "ass
       where: { id: shiftId },
       include: {
         user: { select: { name: true, email: true, cargo: true, role: true, telegramChatId: true } },
+        branch: { select: { company: { select: { plan: { select: { code: true } } } } } },
       },
     });
     if (!shift || shift.user.role === "admin" || shift.user.role === "superadmin" || shift.user.role === "dios") return;
+    if (!shift.branch?.company?.plan || !["pro", "empresa"].includes(shift.branch.company.plan.code)) return;
     const labels = await getShiftTypeLabels(shift.branchId);
     await notifyShiftAssigned(
       { name: shift.user.name, email: shift.user.email, cargo: shift.user.cargo },

@@ -37,6 +37,7 @@ const DEFAULT_PLANS = [
       "Todo lo del Básico",
       "Filtro por cargo y departamento",
       "Exportación a Excel",
+      "Notificaciones por correo y push",
     ]),
   },
   {
@@ -52,6 +53,7 @@ const DEFAULT_PLANS = [
       "Todo lo del Pro",
       "Roles y permisos avanzados",
       "Soporte prioritario",
+      "Notificaciones por correo y push",
     ]),
   },
 ];
