@@ -127,7 +127,7 @@ export default function LoginPage() {
             <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
               DIOS
             </span>
-            12.345.678-9 / admin123
+            12345678-9 / admin123
             <br />
             <span className="badge !border-amber-400/30 !bg-amber-100 !text-amber-700 mr-1">
               Super Admin

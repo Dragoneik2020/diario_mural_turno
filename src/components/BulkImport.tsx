@@ -4,6 +4,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { parseCSV } from "@/lib/csv";
 import { X } from "lucide-react";
+import { formatRut } from "@/lib/rut";
 
 interface Props {
   onDone: () => void;
@@ -139,7 +140,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
       const parts = [(r[iName] || "").trim(), ap1.trim(), ap2.trim()].filter(Boolean);
       const name = parts.join(" ");
       const email = (r[iEmail] || "").trim();
-      const rut = iRut >= 0 ? (r[iRut] || "").trim() : "";
+      const rut = iRut >= 0 ? formatRut(r[iRut] || "") : "";
       const department = (r[iDept] || "").trim();
       const cargo = (r[iCargo] || "").trim();
       const password = (r[iPass] || "").trim();

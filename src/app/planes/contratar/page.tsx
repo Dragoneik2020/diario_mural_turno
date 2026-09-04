@@ -221,7 +221,7 @@ export default function ContratarPage() {
                   className="input"
                   value={adminRut}
                   onChange={(e) => setAdminRut(e.target.value)}
-                  placeholder="12.345.678-9"
+                  placeholder="17969468-9"
                   required
                 />
               </div>

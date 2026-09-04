@@ -6,6 +6,7 @@ import BulkImport from "@/components/BulkImport";
 import { Users } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import EmptyState from "@/components/EmptyState";
+import { formatRut } from "@/lib/rut";
 
 export interface WorkerRow {
   id: string;
@@ -381,7 +382,8 @@ export default function WorkersManager({
                 type="text"
                 value={form.rut}
                 onChange={(e) => setForm({ ...form, rut: e.target.value })}
-                placeholder="12.345.678-9"
+                onBlur={(e) => setForm({ ...form, rut: formatRut(e.target.value) })}
+                placeholder="17969468-9"
               />
               <p className="text-xs text-slate-400 mt-1">El RUT es el usuario para entrar a la app.</p>
             </div>
@@ -491,7 +493,7 @@ export default function WorkersManager({
                     <span>{u.name}</span>
                   </div>
                 </td>
-                <td className="py-2 pr-2 text-slate-500">{u.rut || "—"}</td>
+                <td className="py-2 pr-2 text-slate-500">{formatRut(u.rut) || "—"}</td>
                 <td className="py-2 pr-2 text-slate-500">{u.email}</td>
                 <td className="py-2 pr-2">
                   {superadmin ? (
