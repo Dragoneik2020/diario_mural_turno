@@ -13,7 +13,9 @@ export async function GET() {
   try {
     await requireDios();
     const config = await getTelegramConfig();
-    return NextResponse.json({ config });
+    return NextResponse.json({
+      config: { ...config, botToken: config.botToken ? "__configured__" : "" },
+    });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
@@ -30,7 +32,10 @@ export async function PATCH(req: NextRequest) {
 
     const config = {
       enabled: typeof b?.enabled === "boolean" ? b.enabled : current.enabled,
-      botToken: str(b?.botToken, current.botToken),
+      botToken:
+        typeof b?.botToken === "string" && b.botToken.trim() && b.botToken !== "__configured__"
+          ? b.botToken.trim()
+          : current.botToken,
       messageTemplate:
         typeof b?.messageTemplate === "string" && b.messageTemplate.trim()
           ? b.messageTemplate
@@ -47,7 +52,10 @@ export async function PATCH(req: NextRequest) {
       create: { branchId: "global", key: "telegram", value: JSON.stringify(config) },
     });
 
-    return NextResponse.json({ config, ok: true });
+    return NextResponse.json({
+      config: { ...config, botToken: config.botToken ? "__configured__" : "" },
+      ok: true,
+    });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });

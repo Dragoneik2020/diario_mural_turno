@@ -39,9 +39,9 @@ export default function EmailNotificationsEditor() {
         setSmtpPort(String(s.port || 587));
         setSmtpSecure(!!s.secure);
         setSmtpUser(s.user || "");
-        setSmtpPass(s.pass || "");
+         setSmtpPass("");
         setSmtpFrom(s.from || "");
-        setCronSecret(d.cronSecret || "");
+         setCronSecret("");
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -68,10 +68,10 @@ export default function EmailNotificationsEditor() {
             port: Number(smtpPort) || 587,
             secure: smtpSecure,
             user: smtpUser,
-            pass: smtpPass,
+             ...(smtpPass ? { pass: smtpPass } : {}),
             from: smtpFrom,
           },
-          cronSecret,
+           ...(cronSecret ? { cronSecret } : {}),
         }),
       });
       if (!res.ok) throw new Error("Error al guardar");
@@ -172,7 +172,7 @@ POST /api/cron/morning-reminder{"\n"}Header: x-cron-secret: {cronSecret || "TU_C
           </div>
           <div>
             <label className="label">Contraseña / Token</label>
-            <input className="input" type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} />
+           <input className="input" type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} placeholder="Dejar vacío para conservar" />
           </div>
           <div>
             <label className="label">Remitente (From)</label>
@@ -188,9 +188,9 @@ POST /api/cron/morning-reminder{"\n"}Header: x-cron-secret: {cronSecret || "TU_C
           <label className="label">Secreto del recordatorio (CRON_SECRET)</label>
           <input
             className="input"
-            value={cronSecret}
+             value={cronSecret}
             onChange={(e) => setCronSecret(e.target.value)}
-            placeholder="genera un secreto aleatorio"
+             placeholder="Dejar vacío para conservar el actual"
           />
           <p className="text-xs text-slate-400 mt-1">
             Debe coincidir con la cabecera <code>x-cron-secret</code> que envíe tu tarea programada.

@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createKhipuPayment } from "@/lib/khipu";
+import { normalizeRut } from "@/lib/rut";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ const checkoutSchema = z.object({
   companyName: z.string().min(2).max(100),
   adminName: z.string().min(2).max(100),
   adminEmail: z.string().email(),
+  adminRut: z.string().min(7).max(20),
   adminPassword: z.string().min(6).max(100),
 });
 
@@ -47,6 +49,13 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
 
+    const adminRut = normalizeRut(parsed.adminRut);
+    if (!adminRut)
+      return NextResponse.json({ error: "RUT inválido" }, { status: 400 });
+    const existingRut = await prisma.user.findUnique({ where: { rut: adminRut } });
+    if (existingRut)
+      return NextResponse.json({ error: "El RUT ya está registrado" }, { status: 409 });
+
     const base = slugify(parsed.companyName) || "empresa";
     const slug = `${base}-${Date.now().toString(36)}`;
 
@@ -67,6 +76,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: parsed.adminName.trim(),
         email: parsed.adminEmail,
+        rut: adminRut,
         password,
         role: "admin",
         branchId: branch.id,

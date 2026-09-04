@@ -34,6 +34,7 @@ export default function ContratarPage() {
   const [companyName, setCompanyName] = useState("");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
+  const [adminRut, setAdminRut] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,9 +66,10 @@ export default function ContratarPage() {
           planCode,
           period,
           companyName,
-          adminName,
-          adminEmail,
-          adminPassword,
+            adminName,
+            adminEmail,
+            adminRut,
+            adminPassword,
         }),
       });
       const data = await res.json();
@@ -210,6 +212,16 @@ export default function ContratarPage() {
                   onChange={(e) => setAdminEmail(e.target.value)}
                   placeholder="tu@correo.com"
                   autoComplete="username"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">RUT (usuario de acceso)</label>
+                <input
+                  className="input"
+                  value={adminRut}
+                  onChange={(e) => setAdminRut(e.target.value)}
+                  placeholder="12.345.678-9"
                   required
                 />
               </div>

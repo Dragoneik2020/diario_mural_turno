@@ -17,7 +17,7 @@ export default function TelegramConfigEditor() {
       const res = await fetch("/api/admin/telegram");
       if (!res.ok) throw new Error();
       const d = await res.json();
-      setConfig(d.config || { ...DEFAULT_TELEGRAM });
+      setConfig(d.config ? { ...d.config, botToken: "" } : { ...DEFAULT_TELEGRAM });
     } catch {
       setError("No se pudo cargar la configuración.");
     } finally {
@@ -93,7 +93,7 @@ export default function TelegramConfigEditor() {
           <input
             className={`${inputCls} font-mono`}
             type="password"
-            placeholder="123456:ABC-DEF..."
+             placeholder="Dejar vacío para conservar el token actual"
             value={config.botToken}
             onChange={(e) => set("botToken", e.target.value)}
           />

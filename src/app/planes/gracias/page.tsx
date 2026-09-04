@@ -15,7 +15,7 @@ interface OrderInfo {
   planName: string;
   companyName: string;
   companyStatus: string;
-  khipuPaymentId: string | null;
+  demo: boolean;
   paidAt: string | null;
   createdAt: string;
 }
@@ -78,7 +78,7 @@ export default function GraciasPage() {
     setActivating(false);
   }
 
-  const isDemo = order ? (order.khipuPaymentId ?? "").startsWith("demo-") : false;
+  const isDemo = order?.demo === true;
   const isPending = order?.status === "pendiente";
   const isPaid = order?.status === "pagado";
 

@@ -24,7 +24,7 @@ export async function GET(
     planName: order.plan.name,
     companyName: order.company.name,
     companyStatus: order.company.status,
-    khipuPaymentId: order.khipuPaymentId,
+    demo: (order.khipuPaymentId ?? "").startsWith("demo-"),
     paidAt: order.paidAt,
     createdAt: order.createdAt,
   });

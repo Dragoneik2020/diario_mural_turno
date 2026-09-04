@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/session";
+import { requireAdmin } from "@/lib/session";
 import {
   DEFAULT_EMAIL_NOTIF,
   EmailNotifConfig,
@@ -16,13 +16,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireAdmin();
     const [config, smtp, cronSecret] = await Promise.all([
       getEmailNotifications(session.branchId),
       getSmtpConfig(),
       getCronSecret(),
     ]);
-    return NextResponse.json({ config, smtp, cronSecret });
+    return NextResponse.json({
+      config,
+      smtp: { ...smtp, pass: smtp.pass ? "__configured__" : "" },
+      cronSecret: cronSecret ? "__configured__" : "",
+    });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED")
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -77,7 +81,7 @@ export async function PATCH(req: NextRequest) {
         port: Number(s.port) || DEFAULT_SMTP.port,
         secure: !!s.secure,
         user: str(s.user),
-        pass: str(s.pass),
+        pass: s.pass === "__configured__" ? (await getSmtpConfig()).pass : str(s.pass),
         from: str(s.from),
       };
       await prisma.setting.upsert({
@@ -87,7 +91,7 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    if (body && typeof body.cronSecret === "string" && body.cronSecret.trim()) {
+    if (body && typeof body.cronSecret === "string" && body.cronSecret.trim() && body.cronSecret !== "__configured__") {
       await prisma.setting.upsert({
         where: { branchId_key: { branchId: GLOBAL_BRANCH_ID, key: "cronSecret" } },
         update: { value: JSON.stringify(body.cronSecret.trim()) },
@@ -99,7 +103,17 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ config, smtp: body?.smtp ? body.smtp : undefined, ok: true });
+    const savedSmtp = body?.smtp ? await getSmtpConfig() : null;
+    return NextResponse.json({
+      config,
+      smtp: savedSmtp
+        ? {
+            ...savedSmtp,
+            pass: savedSmtp.pass ? "__configured__" : "",
+          }
+        : undefined,
+      ok: true,
+    });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });

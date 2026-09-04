@@ -1,8 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "dev-secret-change-me-please"
-);
+function getSecret(): Uint8Array {
+  const value = process.env.AUTH_SECRET;
+  if (!value && process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET must be configured in production");
+  }
+  return new TextEncoder().encode(value || "dev-secret-change-me-please");
+}
 
 export const SESSION_COOKIE = "dt_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -36,12 +40,12 @@ export async function createToken(session: Session): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE}s`)
-    .sign(secret);
+    .sign(getSecret());
 }
 
 export async function verifyToken(token: string): Promise<Session | null> {
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, getSecret());
     return {
       id: payload.id as string,
       name: payload.name as string,

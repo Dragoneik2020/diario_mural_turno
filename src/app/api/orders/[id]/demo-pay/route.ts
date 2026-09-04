@@ -10,6 +10,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (process.env.DEMO_PAY_ENABLED !== "true")
+      return NextResponse.json({ error: "Pago demo deshabilitado" }, { status: 404 });
     const order = await prisma.order.findUnique({
       where: { id: params.id },
       include: { company: { select: { id: true, status: true } } },
