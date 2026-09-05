@@ -6,6 +6,7 @@ import WorkerDashboardTabs from "@/components/WorkerDashboardTabs";
 import MuralPanel from "@/components/MuralPanel";
 import Avatar from "@/components/Avatar";
 import PushPermissionButton from "@/components/PushPermissionButton";
+import InstallPwaButton from "@/components/InstallPwaButton";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,8 @@ export default async function DashboardPage() {
             <p className="text-slate-500">
               Tus turnos personales y el calendario de todo el equipo.
             </p>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-col gap-2">
+              <InstallPwaButton />
               <PushPermissionButton />
             </div>
           </div>
