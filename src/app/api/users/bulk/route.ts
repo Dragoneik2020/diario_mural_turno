@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { normalizeRut } from "@/lib/rut";
+import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isMultiBranch, writeBranchId, isDios } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
       const { name, email, role, department, cargo } = parsed.data;
-      const rutNorm = normalizeRut(parsed.data.rut);
+      const rutRaw = parsed.data.rut?.trim() || null;
+      if (rutRaw && !normalizeRut(rutRaw)) {
+        errors.push({ email, error: RUT_FORMAT_ERROR });
+        continue;
+      }
+      const rutNorm = rutRaw ? (normalizeRut(rutRaw) as string) : null;
 
       // Sucursal efectiva de la fila: la del archivo, o la global elegida.
       let rowBranchId = branchId;

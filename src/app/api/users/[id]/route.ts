@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { normalizeRut } from "@/lib/rut";
+import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import {
   requireUser,
   requireAdmin,
@@ -99,7 +99,14 @@ export async function PATCH(
 
     let rutNorm: string | null | undefined;
     if ("rut" in parsed) {
-      rutNorm = normalizeRut(parsed.rut);
+      const rutRaw = parsed.rut?.trim() || null;
+      if (rutRaw) {
+        rutNorm = normalizeRut(rutRaw);
+        if (!rutNorm)
+          return NextResponse.json({ error: RUT_FORMAT_ERROR }, { status: 400 });
+      } else {
+        rutNorm = null;
+      }
       data.rut = rutNorm;
     }
 

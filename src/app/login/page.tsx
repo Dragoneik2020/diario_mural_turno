@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarCheck } from "lucide-react";
+import { isValidRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Diario de Turnos";
 
@@ -17,6 +18,10 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!isValidRut(rut)) {
+      setError(RUT_FORMAT_ERROR);
+      return;
+    }
     setLoading(true);
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -85,10 +90,17 @@ export default function LoginPage() {
                   setRut(e.target.value);
                   if (error) setError("");
                 }}
-                placeholder="12.345.678-9"
+                placeholder="17969468-9"
                 autoComplete="username"
+                inputMode="text"
+                maxLength={10}
+                pattern="[0-9]{7,8}-[0-9kK]"
+                title="Usa formato 17969468-9 (sin puntos, con guion)"
                 required
               />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Formato: 17969468-9, sin puntos y con guion.
+              </p>
             </div>
             <div>
               <label className="label">Contraseña</label>
@@ -127,22 +139,22 @@ export default function LoginPage() {
             <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
               DIOS
             </span>
-            12345678-9 / admin123
+            12345678-5 / admin123
             <br />
             <span className="badge !border-amber-400/30 !bg-amber-100 !text-amber-700 mr-1">
               Super Admin
             </span>
-            66.666.666-6 / admin123
+            66666666-6 / admin123
             <br />
             <span className="badge !border-brand-400/30 !bg-brand-100 !text-brand-700 mr-1">
               Admin
             </span>
-            55.555.555-5 / admin123
+            55555555-5 / admin123
             <br />
             <span className="badge !border-slate-400/30 !bg-slate-100 !text-slate-300 mr-1">
               Trabajador
             </span>
-            11.111.111-1 / trabajador123
+            11111111-1 / trabajador123
           </div>
         </div>
       </div>

@@ -76,11 +76,11 @@ async function main() {
 
   const dios = await prisma.user.upsert({
     where: { email: "admin@demo.com" },
-    update: { role: "dios", branchId: null, name: "Cuenta DIOS", rut: "12345678-9" },
+    update: { role: "dios", branchId: null, name: "Cuenta DIOS", rut: "12345678-5" },
     create: {
       name: "Cuenta DIOS",
       email: "admin@demo.com",
-      rut: "12345678-9",
+      rut: "12345678-5",
       password: adminPassword,
       role: "dios",
       department: "Dirección",

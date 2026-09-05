@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { normalizeRut } from "@/lib/rut";
+import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isDios, branchWhere, writeBranchId, effectiveCompanyId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -83,12 +83,16 @@ export async function POST(req: NextRequest) {
     if (exists)
       return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
 
-    const rutNorm = normalizeRut(parsed.rut);
-    if (rutNorm) {
+    const rutRaw = parsed.rut?.trim() || null;
+    if (rutRaw) {
+      const rutNorm = normalizeRut(rutRaw);
+      if (!rutNorm)
+        return NextResponse.json({ error: RUT_FORMAT_ERROR }, { status: 400 });
       const rutExists = await prisma.user.findUnique({ where: { rut: rutNorm } });
       if (rutExists)
         return NextResponse.json({ error: "El RUT ya está registrado" }, { status: 409 });
     }
+    const rutNorm = rutRaw ? (normalizeRut(rutRaw) as string) : null;
 
     // La sucursal destino según el rol: dios/superadmin pueden elegirla
     // (el superadmin solo dentro de su empresa; dios en modo empresa también).

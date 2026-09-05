@@ -3,7 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createKhipuPayment } from "@/lib/khipu";
-import { normalizeRut } from "@/lib/rut";
+import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const adminRut = normalizeRut(parsed.adminRut);
     if (!adminRut)
-      return NextResponse.json({ error: "RUT inválido" }, { status: 400 });
+      return NextResponse.json({ error: RUT_FORMAT_ERROR }, { status: 400 });
     const existingRut = await prisma.user.findUnique({ where: { rut: adminRut } });
     if (existingRut)
       return NextResponse.json({ error: "El RUT ya está registrado" }, { status: 409 });

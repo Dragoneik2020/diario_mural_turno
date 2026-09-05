@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     const firstBranch = branches[0]?.name ?? "";
     ws.getRow(4).values = [
       "",
-      "12345678-9",
+      "12345678-5",
       "Lucía",
       "Pérez",
       "Soto",
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     ];
     ws.getRow(5).values = [
       "",
-      "98765432-1",
+      "98765432-5",
       "Pedro",
       "Sánchez",
       "Muñoz",

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CalendarCheck, Lock, Sparkles } from "lucide-react";
+import { isValidRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Diario de Turnos";
 
@@ -56,6 +57,7 @@ export default function ContratarPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!planCode) return setError("Selecciona un plan.");
+    if (!isValidRut(adminRut)) return setError(RUT_FORMAT_ERROR);
     setError("");
     setLoading(true);
     try {
@@ -222,8 +224,14 @@ export default function ContratarPage() {
                   value={adminRut}
                   onChange={(e) => setAdminRut(e.target.value)}
                   placeholder="17969468-9"
+                  maxLength={10}
+                  pattern="[0-9]{7,8}-[0-9kK]"
+                  title="Usa formato 17969468-9 (sin puntos, con guion)"
                   required
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Formato: 17969468-9, sin puntos y con guion.
+                </p>
               </div>
             </div>
 

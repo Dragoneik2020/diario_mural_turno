@@ -4,7 +4,7 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { parseCSV } from "@/lib/csv";
 import { X } from "lucide-react";
-import { formatRut } from "@/lib/rut";
+import { formatRut, isValidRut } from "@/lib/rut";
 
 interface Props {
   onDone: () => void;
@@ -140,7 +140,8 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
       const parts = [(r[iName] || "").trim(), ap1.trim(), ap2.trim()].filter(Boolean);
       const name = parts.join(" ");
       const email = (r[iEmail] || "").trim();
-      const rut = iRut >= 0 ? formatRut(r[iRut] || "") : "";
+      const rutRaw = iRut >= 0 ? (r[iRut] || "").trim() : "";
+      const rut = formatRut(rutRaw);
       const department = (r[iDept] || "").trim();
       const cargo = (r[iCargo] || "").trim();
       const password = (r[iPass] || "").trim();
@@ -150,13 +151,16 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
       const sucursal = iSuc >= 0 ? (r[iSuc] || "").trim() : "";
       const resolved = superadmin ? resolveBranch(sucursal) : undefined;
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      const rutOk = !rutRaw || isValidRut(rutRaw);
       const err = !name
         ? "Falta nombre"
         : !emailOk
           ? "Email inválido"
-          : sucursal && superadmin && !resolved
-            ? "Sucursal no encontrada"
-            : undefined;
+          : !rutOk
+            ? "RUT inválido (usa 17969468-9)"
+            : sucursal && superadmin && !resolved
+              ? "Sucursal no encontrada"
+              : undefined;
       return { name, email, rut, department, cargo, role, password, sucursal, branchId: resolved, error: err };
     });
   }

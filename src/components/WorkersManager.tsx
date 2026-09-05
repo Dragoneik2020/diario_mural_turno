@@ -6,7 +6,7 @@ import BulkImport from "@/components/BulkImport";
 import { Users } from "lucide-react";
 import Avatar from "@/components/Avatar";
 import EmptyState from "@/components/EmptyState";
-import { formatRut } from "@/lib/rut";
+import { formatRut, isValidRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 
 export interface WorkerRow {
   id: string;
@@ -83,13 +83,12 @@ export default function WorkersManager({
     if (filterDepartment && u.department !== filterDepartment) return false;
     if (filterRole && u.role !== filterRole) return false;
     if (search) {
-      const q = search.toLowerCase();
-      const rutQ = q.replace(/\./g, "").replace(/\s+/g, "");
-      const uRut = (u.rut || "").toLowerCase().replace(/\./g, "").replace(/\s+/g, "");
+      const q = search.trim().toLowerCase();
+      const uRut = (u.rut || "").toLowerCase();
       if (
         !u.name.toLowerCase().includes(q) &&
         !u.email.toLowerCase().includes(q) &&
-        !uRut.includes(rutQ)
+        !uRut.includes(q)
       )
         return false;
     }
@@ -161,6 +160,12 @@ export default function WorkersManager({
     e.preventDefault();
     setBusy(true);
     setError("");
+    const rutValue = form.rut.trim();
+    if (rutValue && !isValidRut(rutValue)) {
+      setBusy(false);
+      setError(RUT_FORMAT_ERROR);
+      return;
+    }
     const url = editing ? `/api/users/${editing.id}` : "/api/users";
     const method = editing ? "PATCH" : "POST";
     const body = editing
@@ -381,11 +386,14 @@ export default function WorkersManager({
                 className="input"
                 type="text"
                 value={form.rut}
-                onChange={(e) => setForm({ ...form, rut: e.target.value })}
+                onChange={(e) => setForm({ ...form, rut: e.target.value.trim() })}
                 onBlur={(e) => setForm({ ...form, rut: formatRut(e.target.value) })}
                 placeholder="17969468-9"
+                maxLength={10}
+                pattern="[0-9]{7,8}-[0-9kK]"
+                title="Usa formato 17969468-9 (sin puntos, con guion)"
               />
-              <p className="text-xs text-slate-400 mt-1">El RUT es el usuario para entrar a la app.</p>
+              <p className="text-xs text-slate-400 mt-1">Formato: 17969468-9, sin puntos y con guion.</p>
             </div>
             <div>
               <label className="label">Contraseña {editing && "(dejar vacío para no cambiar)"}</label>
