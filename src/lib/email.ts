@@ -93,6 +93,53 @@ export async function notifyShiftAssigned(
   }
 }
 
+export async function notifyAccountCreated(
+  worker: WorkerLite,
+  creds: { rut: string; password: string },
+  loginUrl: string,
+  branchId?: string | null
+): Promise<boolean> {
+  if (!worker.email) return false;
+  const cfg = await getEmailNotifications(branchId);
+  if (!cfg.welcomeEnabled) return false;
+
+  const smtp = await getSmtpConfig();
+  if (!smtp.host) {
+    console.warn("[email] SMTP no configurado; no se envió correo de bienvenida.");
+    return false;
+  }
+
+  const map: Record<string, string> = {
+    "{nombre}": worker.name,
+    "{rut}": creds.rut,
+    "{clave}": creds.password,
+    "{correo}": worker.email,
+    "{url}": loginUrl,
+  };
+  const fillWelcome = (tpl: string) =>
+    tpl.replace(/\{[a-z]+\}/gi, (m) => (m in map ? map[m] : m));
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: Number(smtp.port) || 587,
+      secure: !!smtp.secure,
+      auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
+    });
+
+    await transporter.sendMail({
+      from: smtp.from || smtp.user || worker.email,
+      to: worker.email,
+      subject: fillWelcome(cfg.welcomeSubject),
+      text: fillWelcome(cfg.welcomeBody),
+    });
+    return true;
+  } catch (e: any) {
+    console.error("[email] Error enviando correo de bienvenida:", e?.message || e);
+    return false;
+  }
+}
+
 export async function notifyShiftById(shiftId: string, template: Template = "assignment"): Promise<void> {
   try {
     const shift = await prisma.shift.findUnique({

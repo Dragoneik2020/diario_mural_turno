@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isMultiBranch, writeBranchId, isDios } from "@/lib/session";
+import { notifyAccountCreated } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +126,13 @@ export async function POST(req: NextRequest) {
           select: { id: true, name: true, email: true },
         });
         created.push({ email: user.email, name: user.name });
+        // Notifica al trabajador (fire-and-forget; best effort).
+        notifyAccountCreated(
+          { name: user.name, email: user.email },
+          { rut: rutNorm ?? "", password },
+          `${req.nextUrl.origin}/login`,
+          rowBranchId
+        );
       } catch (e: any) {
         errors.push({ email, error: "Error al crear" });
       }

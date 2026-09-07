@@ -82,6 +82,9 @@ export interface EmailNotifConfig {
   morningEnabled: boolean;
   morningSubject: string;
   morningBody: string;
+  welcomeEnabled: boolean;
+  welcomeSubject: string;
+  welcomeBody: string;
 }
 
 export const DEFAULT_EMAIL_NOTIF: EmailNotifConfig = {
@@ -93,6 +96,10 @@ export const DEFAULT_EMAIL_NOTIF: EmailNotifConfig = {
   morningSubject: "Recordatorio: tienes turno hoy",
   morningBody:
     "Hola {nombre}.\n\nRecordatorio de tu turno de hoy:\n• Tipo: {tipo}\n• Horario: {inicio}–{fin}",
+  welcomeEnabled: true,
+  welcomeSubject: "Bienvenido a Diario de Turnos",
+  welcomeBody:
+    "Hola {nombre}.\n\nTe han creado una cuenta para la app Diario de Turnos.\n\n• Usuario (RUT): {rut}\n• Contraseña: {clave}\n• Correo: {correo}\n• Acceso: {url}\n\nIngresa con tu RUT y la contraseña para ver tus turnos. Te recomendamos cambiar la contraseña desde tu perfil.",
 };
 
 export async function getEmailNotifications(

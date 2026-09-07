@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isDios, branchWhere, writeBranchId, effectiveCompanyId } from "@/lib/session";
+import { notifyAccountCreated } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -167,6 +168,13 @@ export async function POST(req: NextRequest) {
         branchId: true,
       },
     });
+    // Notifica al trabajador (fire-and-forget; best effort).
+    notifyAccountCreated(
+      { name: user.name, email: user.email, cargo: user.cargo },
+      { rut: user.rut ?? "", password: parsed.password },
+      `${req.nextUrl.origin}/login`,
+      user.branchId
+    );
     return NextResponse.json({ user }, { status: 201 });
   } catch (e: any) {
     if (e.name === "ZodError")

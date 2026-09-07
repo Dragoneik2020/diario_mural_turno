@@ -66,6 +66,18 @@ export async function PATCH(req: NextRequest) {
         typeof input?.morningBody === "string" && input.morningBody.trim()
           ? input.morningBody.trim()
           : DEFAULT_EMAIL_NOTIF.morningBody,
+      welcomeEnabled:
+        input && typeof input.welcomeEnabled === "boolean"
+          ? input.welcomeEnabled
+          : DEFAULT_EMAIL_NOTIF.welcomeEnabled,
+      welcomeSubject:
+        typeof input?.welcomeSubject === "string" && input.welcomeSubject.trim()
+          ? input.welcomeSubject.trim()
+          : DEFAULT_EMAIL_NOTIF.welcomeSubject,
+      welcomeBody:
+        typeof input?.welcomeBody === "string" && input.welcomeBody.trim()
+          ? input.welcomeBody.trim()
+          : DEFAULT_EMAIL_NOTIF.welcomeBody,
     };
     const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
     await prisma.setting.upsert({

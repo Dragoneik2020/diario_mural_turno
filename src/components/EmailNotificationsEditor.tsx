@@ -11,6 +11,10 @@ export default function EmailNotificationsEditor() {
   const [morningSubject, setMorningSubject] = useState("");
   const [morningBody, setMorningBody] = useState("");
 
+  const [welcomeEnabled, setWelcomeEnabled] = useState(true);
+  const [welcomeSubject, setWelcomeSubject] = useState("");
+  const [welcomeBody, setWelcomeBody] = useState("");
+
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("587");
   const [smtpSecure, setSmtpSecure] = useState(false);
@@ -34,6 +38,9 @@ export default function EmailNotificationsEditor() {
         setMorningEnabled(!!c.morningEnabled);
         setMorningSubject(c.morningSubject || "");
         setMorningBody(c.morningBody || "");
+        setWelcomeEnabled(c.welcomeEnabled === undefined ? true : !!c.welcomeEnabled);
+        setWelcomeSubject(c.welcomeSubject || "");
+        setWelcomeBody(c.welcomeBody || "");
         const s = d.smtp || {};
         setSmtpHost(s.host || "");
         setSmtpPort(String(s.port || 587));
@@ -62,6 +69,9 @@ export default function EmailNotificationsEditor() {
             morningEnabled,
             morningSubject,
             morningBody,
+            welcomeEnabled,
+            welcomeSubject,
+            welcomeBody,
           },
           smtp: {
             host: smtpHost,
@@ -111,6 +121,30 @@ export default function EmailNotificationsEditor() {
           <p className="text-xs text-slate-400 mt-1">
             Variables: {"{nombre}"}, {"{tipo}"}, {"{fecha}"}, {"{inicio}"}, {"{fin}"}, {"{cargo}"},{" "}
             {"{estado}"}, {"{notas}"}, {"{turno}"}
+          </p>
+        </div>
+      </section>
+
+      {/* Correo de bienvenida al crear cuenta */}
+      <section className="border-t border-slate-100 pt-4">
+        <h4 className="font-medium text-slate-700 mb-2">Correo de bienvenida (al crear cuenta)</h4>
+        <label className="flex items-center gap-2 text-sm text-slate-700 mb-3">
+          <input
+            type="checkbox"
+            checked={welcomeEnabled}
+            onChange={(e) => setWelcomeEnabled(e.target.checked)}
+          />
+          Enviar correo con las credenciales de acceso al crear una cuenta (web o carga masiva)
+        </label>
+        <div className="mb-3">
+          <label className="label">Asunto</label>
+          <input className="input" value={welcomeSubject} onChange={(e) => setWelcomeSubject(e.target.value)} />
+        </div>
+        <div className="mb-3">
+          <label className="label">Cuerpo del mensaje</label>
+          <textarea className="input min-h-[9rem]" value={welcomeBody} onChange={(e) => setWelcomeBody(e.target.value)} />
+          <p className="text-xs text-slate-400 mt-1">
+            Variables: {"{nombre}"}, {"{rut}"}, {"{clave}"}, {"{correo}"}, {"{url}"}
           </p>
         </div>
       </section>
