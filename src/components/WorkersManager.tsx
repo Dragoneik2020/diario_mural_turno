@@ -249,6 +249,37 @@ export default function WorkersManager({
     }
   }
 
+  function escapeCSV(s: string | null | undefined): string {
+    const v = (s ?? "").replace(/"/g, '""');
+    return `"${v}"`;
+  }
+
+  function exportCSV() {
+    const header = ["Nombre","RUT","Email","Sucursal","Departamento","Cargo","Rol","Telegram","Turnos","Activo"];
+    const rows = visible.map((u) => [
+      u.name,
+      u.rut ?? "",
+      u.email,
+      branches.find((b) => b.id === u.branchId)?.name ?? "",
+      u.department ?? "",
+      u.cargo ?? "",
+      roleLabel(u.role),
+      u.telegramChatId ?? "",
+      String(u._count.shifts),
+      u.active ? "Si" : "No",
+    ]);
+    const csv = [header.join(","), ...rows.map((r) => r.map(escapeCSV).join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cuentas-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section className="card">
       <div className="flex items-center justify-between mb-4">
@@ -256,6 +287,17 @@ export default function WorkersManager({
         <button className="btn-primary px-3 py-1.5 text-sm" onClick={openCreate}>
           + Nuevo
         </button>
+        <BulkImport
+          onDone={() => router.refresh()}
+          branches={branches}
+          superadmin={superadmin}
+          defaultBranchId={filterBranch || defaultBranchId}
+        />
+        {isDios && (
+          <button className="btn-ghost px-3 py-1.5 text-sm" onClick={exportCSV}>
+            📥 Exportar CSV
+          </button>
+        )}
         <BulkImport
           onDone={() => router.refresh()}
           branches={branches}
