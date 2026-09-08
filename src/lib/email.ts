@@ -12,7 +12,9 @@ import {
 import {
   companyIdFromBranch,
   ensureFreshAccessToken,
+  getBranchEmailConfig,
   getCompanyEmailConfig,
+  StoredTokenRow,
 } from "@/lib/emailOAuth";
 
 interface WorkerLite {
@@ -58,32 +60,40 @@ function fillTemplate(tpl: string, worker: WorkerLite, shift: ShiftLite, typeLab
   return tpl.replace(/\{[a-z]+\}/gi, (m) => (m in map ? map[m] : m));
 }
 
-/** Transporte saliente: si el tenant conectó Gmail/Outlook usa OAuth; si no, SMTP global. */
+/**
+ * Transporte saliente con prioridad:
+ * 1) correo OAuth de la sucursal (si lo conectó) → 2) correo OAuth de la
+ * empresa (si lo conectó) → 3) SMTP global.
+ */
 async function buildTransporter(
-  companyId?: string | null
+  branchId?: string | null,
+  companyIdOverride?: string | null
 ): Promise<{ transporter: Transporter; from: string } | null> {
+  if (branchId) {
+    const branchCfg = await getBranchEmailConfig(branchId);
+    if (branchCfg) {
+      const mailer = await tryOAuthMailer(branchCfg, (atEnc, exp) =>
+        prisma.branchEmailConfig.update({
+          where: { branchId: branchCfg.branchId },
+          data: { accessTokenEnc: atEnc, expiresAt: exp },
+        })
+      );
+      if (mailer) return mailer;
+    }
+  }
+
+  const companyId =
+    companyIdOverride ?? (branchId ? await companyIdFromBranch(branchId) : null);
   if (companyId) {
-    const cfg = await getCompanyEmailConfig(companyId);
-    if (cfg) {
-      try {
-        const { accessToken, email } = await ensureFreshAccessToken(cfg);
-        const transporter = nodemailer.createTransport(
-          cfg.provider === "google"
-            ? {
-                service: "Gmail",
-                auth: { type: "OAuth2", user: email, accessToken },
-              }
-            : {
-                host: "smtp.office365.com",
-                port: 587,
-                secure: false,
-                auth: { type: "OAuth2", user: email, accessToken },
-              }
-        );
-        return { transporter, from: email };
-      } catch (e: any) {
-        console.error("[email] OAuth del tenant falló, usando SMTP global:", e?.message || e);
-      }
+    const companyCfg = await getCompanyEmailConfig(companyId);
+    if (companyCfg) {
+      const mailer = await tryOAuthMailer(companyCfg, (atEnc, exp) =>
+        prisma.companyEmailConfig.update({
+          where: { companyId },
+          data: { accessTokenEnc: atEnc, expiresAt: exp },
+        })
+      );
+      if (mailer) return mailer;
     }
   }
 
@@ -101,6 +111,30 @@ async function buildTransporter(
   return { transporter, from: smtp.from || smtp.user || "" };
 }
 
+/** Monta un transporter OAuth (Gmail o Outlook) desde los tokens guardados. */
+async function tryOAuthMailer(
+  cfg: StoredTokenRow,
+  persist: (accessTokenEnc: string, expiresAt: Date) => Promise<unknown>
+): Promise<{ transporter: Transporter; from: string } | null> {
+  try {
+    const { accessToken, email } = await ensureFreshAccessToken(cfg, persist);
+    const transporter = nodemailer.createTransport(
+      cfg.provider === "google"
+        ? { service: "Gmail", auth: { type: "OAuth2", user: email, accessToken } }
+        : {
+            host: "smtp.office365.com",
+            port: 587,
+            secure: false,
+            auth: { type: "OAuth2", user: email, accessToken },
+          }
+    );
+    return { transporter, from: email };
+  } catch (e: any) {
+    console.error("[email] OAuth del tenant falló, probando siguiente remitente:", e?.message || e);
+    return null;
+  }
+}
+
 export async function notifyShiftAssigned(
   worker: WorkerLite,
   shift: ShiftLite,
@@ -113,8 +147,7 @@ export async function notifyShiftAssigned(
   if (template === "morning" && !cfg.morningEnabled) return false;
   if (template === "assignment" && !cfg.enabled) return false;
 
-  const companyId = await companyIdFromBranch(branchId);
-  const mailer = await buildTransporter(companyId);
+  const mailer = await buildTransporter(branchId);
   if (!mailer) return false;
 
   try {
@@ -142,8 +175,7 @@ export async function notifyAccountCreated(
   const cfg = await getEmailNotifications(branchId);
   if (!cfg.welcomeEnabled) return false;
 
-  const companyId = await companyIdFromBranch(branchId);
-  const mailer = await buildTransporter(companyId);
+  const mailer = await buildTransporter(branchId);
   if (!mailer) return false;
 
   const map: Record<string, string> = {

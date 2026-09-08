@@ -37,6 +37,22 @@ model CompanyEmailConfig {
   updatedAt      DateTime @updatedAt
 }
 
+/// Correo saliente de una sucursal vía OAuth (anula al de la empresa).
+model BranchEmailConfig {
+  branchId       String   @id
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  companyId      String
+  provider       String // google | microsoft
+  email          String
+  accessTokenEnc String
+  refreshTokenEnc String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([companyId])
+}
+
 model Plan {
   id           String    @id @default(cuid())
   code         String    @unique
@@ -81,6 +97,7 @@ model Branch {
   shifts        Shift[]
   announcements Announcement[]
   polls         Poll[]
+  emailConfig   BranchEmailConfig?
 
   @@index([companyId])
 }

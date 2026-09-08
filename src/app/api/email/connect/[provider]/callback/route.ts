@@ -2,13 +2,14 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import {
+  decryptSecret,
   EMAIL_OAUTH_PROVIDERS,
   EMAIL_OAUTH_STATE_COOKIE,
-  decryptSecret,
   EmailProvider,
   encryptSecret,
   exchangeCode,
   extractEmailFromIdToken,
+  parseOAuthState,
 } from "@/lib/emailOAuth";
 
 export const dynamic = "force-dynamic";
@@ -55,8 +56,8 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
     );
   }
 
-  const companyId = state.split(".")[0];
-  if (!companyId) {
+  const parsed = parseOAuthState(state);
+  if (!parsed || !parsed.companyId) {
     return NextResponse.redirect(
       new URL("/admin/notificaciones?email=error:invalid_company", req.url)
     );
@@ -81,44 +82,59 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
     const emailFromApi = await fetchIdTokenClaims(provider, accessToken);
     const accountEmail = emailFromToken || emailFromApi;
 
-    // Si Google no devuelve refresh_token (solo en el primer consent),
-    // conserva el existente para no romper renovaciones.
-    const existing = await prisma.companyEmailConfig.findUnique({ where: { companyId } });
-    const finalRefreshToken = refreshToken || (existing ? decryptSecret(existing.refreshTokenEnc) : "");
+    // Si el proveedor no devuelve refresh_token (Google solo en el primer
+    // consent), conserva el existente para no romper renovaciones.
+    let existingRefresh = "";
+    if (parsed.scope === "branch" && parsed.branchId) {
+      const row = await prisma.branchEmailConfig.findUnique({
+        where: { branchId: parsed.branchId },
+      });
+      if (row) existingRefresh = decryptSecret(row.refreshTokenEnc);
+    } else {
+      const row = await prisma.companyEmailConfig.findUnique({
+        where: { companyId: parsed.companyId },
+      });
+      if (row) existingRefresh = decryptSecret(row.refreshTokenEnc);
+    }
+    const finalRefreshToken = refreshToken || existingRefresh;
 
     if (!accountEmail || !finalRefreshToken) {
       return NextResponse.redirect(
-        new URL(
-          "/admin/notificaciones?email=error:no_account_email",
-          req.url
-        )
+        new URL("/admin/notificaciones?email=error:no_account_email", req.url)
       );
     }
 
-    await prisma.companyEmailConfig.upsert({
-      where: { companyId },
-      create: {
-        companyId,
-        provider,
-        email: accountEmail,
-        accessTokenEnc: encryptSecret(accessToken),
-        refreshTokenEnc: encryptSecret(finalRefreshToken),
-        expiresAt: new Date(Date.now() + expiresIn * 1000),
-      },
-      update: {
-        provider,
-        email: accountEmail,
-        accessTokenEnc: encryptSecret(accessToken),
-        refreshTokenEnc: encryptSecret(finalRefreshToken),
-        expiresAt: new Date(Date.now() + expiresIn * 1000),
-      },
-    });
+    const tokenData = {
+      provider,
+      email: accountEmail,
+      accessTokenEnc: encryptSecret(accessToken),
+      refreshTokenEnc: encryptSecret(finalRefreshToken),
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+    };
+
+    if (parsed.scope === "branch" && parsed.branchId) {
+      await prisma.branchEmailConfig.upsert({
+        where: { branchId: parsed.branchId },
+        create: {
+          branchId: parsed.branchId,
+          companyId: parsed.companyId,
+          ...tokenData,
+        },
+        update: tokenData,
+      });
+    } else {
+      await prisma.companyEmailConfig.upsert({
+        where: { companyId: parsed.companyId },
+        create: { companyId: parsed.companyId, ...tokenData },
+        update: tokenData,
+      });
+    }
 
     return NextResponse.redirect(
-      new URL(`/admin/notificaciones?email=connected`, req.url)
+      new URL("/admin/notificaciones?email=connected", req.url)
     );
   } catch (e: any) {
-    console.error("[emailOAuth] callback fallÃ³:", e?.message || e);
+    console.error("[emailOAuth] callback falló:", e?.message || e);
     return NextResponse.redirect(
       new URL(`/admin/notificaciones?email=error:${encodeURIComponent(e?.message || "unknown")}`, req.url)
     );

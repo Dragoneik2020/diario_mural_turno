@@ -2,12 +2,25 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+interface EmailConnInfo {
+  connected: boolean;
+  provider?: string;
+  email?: string;
+}
+
+interface EmailConfigs {
+  company: EmailConnInfo | null;
+  branches: { id: string; name: string; connected: boolean; provider?: string; email?: string }[];
+}
+
 interface EmailNotificationsEditorProps {
-  canConnectEmail?: boolean;
+  canManageCompanyEmail?: boolean;
+  canManageBranchEmail?: boolean;
 }
 
 export default function EmailNotificationsEditor({
-  canConnectEmail = false,
+  canManageCompanyEmail = false,
+  canManageBranchEmail = false,
 }: EmailNotificationsEditorProps) {
   const [enabled, setEnabled] = useState(false);
   const [subject, setSubject] = useState("");
@@ -29,32 +42,27 @@ export default function EmailNotificationsEditor({
   const [smtpFrom, setSmtpFrom] = useState("");
   const [cronSecret, setCronSecret] = useState("");
 
-  const [emailConnected, setEmailConnected] = useState<{
-    connected: boolean;
-    provider?: string;
-    email?: string;
-  } | null>(null);
-  const [emailConnError, setEmailConnError] = useState("");
-  const [emailMsg, setEmailMsg] = useState("");
+  const [emailData, setEmailData] = useState<EmailConfigs | null>(null);
+  const [emailMsg, setEmailMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  const loadEmailConfig = useCallback(() => {
-    fetch("/api/email/config")
+  const loadEmailConfigs = useCallback(() => {
+    fetch("/api/email/configs")
       .then((r) => r.json())
       .then((d) => {
-        if (d.connected !== undefined) setEmailConnected(d);
+        if (d && Array.isArray(d.branches)) setEmailData(d);
       })
-      .catch(() => setEmailConnected(null));
+      .catch(() => setEmailData(null));
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const st = params.get("email");
-    if (st === "connected") setEmailMsg("Correo del negocio conectado correctamente.");
-    else if (st) setEmailMsg("No se pudo conectar: " + st.replace(/^error:/, ""));
+    if (st === "connected") setEmailMsg({ text: "Correo del negocio conectado correctamente.", ok: true });
+    else if (st) setEmailMsg({ text: "No se pudo conectar: " + st.replace(/^error:/, ""), ok: false });
 
     fetch("/api/settings/email-notifications")
       .then((r) => r.json())
@@ -81,21 +89,53 @@ export default function EmailNotificationsEditor({
       })
       .catch(() => setLoaded(true));
 
-    if (canConnectEmail) loadEmailConfig();
-  }, [canConnectEmail, loadEmailConfig]);
+    if (canManageCompanyEmail || canManageBranchEmail) loadEmailConfigs();
+  }, [canManageCompanyEmail, canManageBranchEmail, loadEmailConfigs]);
 
-  async function disconnectEmail() {
+  async function disconnectEmail(branchId?: string) {
     setBusy(true);
     try {
-      const res = await fetch("/api/email/config", { method: "DELETE" });
+      const qs = branchId
+        ? `?scope=branch&branchId=${encodeURIComponent(branchId)}`
+        : `?scope=company`;
+      const res = await fetch(`/api/email/config${qs}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Error");
-      setEmailConnected({ connected: false });
-      setEmailMsg("Correo del negocio desconectado. Se usará el SMTP global.");
+      setEmailMsg({
+        text: branchId
+          ? "Correo de la sucursal desconectado. Usará el de la empresa o el SMTP global."
+          : "Correo de la empresa desconectado. Usará el SMTP global.",
+        ok: true,
+      });
+      loadEmailConfigs();
     } catch {
-      setEmailMsg("No se pudo desconectar el correo.");
+      setEmailMsg({ text: "No se pudo desconectar el correo.", ok: false });
     } finally {
       setBusy(false);
     }
+  }
+
+  function ConnectButtons({ branchId }: { branchId?: string }) {
+    const qs = branchId ? `?scope=branch&branchId=${encodeURIComponent(branchId)}` : "";
+    return (
+      <div className="flex flex-wrap gap-2">
+        <a href={`/api/email/connect/google${qs}`} className="btn-primary text-sm">
+          Conectar Gmail
+        </a>
+        <a href={`/api/email/connect/microsoft${qs}`} className="btn-primary text-sm">
+          Conectar Outlook
+        </a>
+      </div>
+    );
+  }
+
+  function ConnBadge({ info }: { info: EmailConnInfo }) {
+    if (!info?.connected) return null;
+    return (
+      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm">
+        <span className="w-2 h-2 rounded-full bg-green-500" />
+        {info.provider === "google" ? "Gmail" : "Outlook"} · {info.email}
+      </span>
+    );
   }
 
   async function save() {
@@ -194,42 +234,94 @@ export default function EmailNotificationsEditor({
       </section>
 
       {/* Correo saliente del negocio (OAuth) */}
-      {canConnectEmail && (
+      {(canManageCompanyEmail || canManageBranchEmail) && (
         <section className="border-t border-slate-100 pt-4">
           <h4 className="font-medium text-slate-700 mb-2">Correo saliente del negocio</h4>
           <p className="text-sm text-slate-500 mb-3">
-            Conecta Gmail o Outlook y tu negocio enviará las notificaciones desde su propio correo,
-            sin depender del SMTP global. Si desconectas, se vuelve a usar el SMTP global.
+            Cada sucursal puede enviar desde su propio correo. Si una sucursal no conecta el suyo,
+            usa el correo de la empresa; si la empresa tampoco, el SMTP global.
           </p>
 
-          {emailMsg && <p className="text-sm text-green-600 mb-3">{emailMsg}</p>}
-          {emailConnError && <p className="text-sm text-red-600 mb-3">{emailConnError}</p>}
+          {emailMsg && (
+            <p className={`text-sm mb-3 ${emailMsg.ok ? "text-green-600" : "text-red-600"}`}>
+              {emailMsg.text}
+            </p>
+          )}
 
-          {emailConnected?.connected ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                Conectado: {emailConnected.provider === "google" ? "Gmail" : "Outlook"} ·{" "}
-                {emailConnected.email}
-              </span>
-              <button className="btn-ghost text-sm" onClick={disconnectEmail} disabled={busy}>
-                Desconectar
-              </button>
+          {canManageCompanyEmail && (
+            <div className="mb-4 p-3 rounded-lg border border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-700 text-sm">Empresa (todas las sucursales)</p>
+                  <p className="text-xs text-slate-400">Correo por defecto para las sucursales sin configurar.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {emailData?.company?.connected && (
+                    <ConnBadge info={emailData.company} />
+                  )}
+                  {emailData?.company?.connected ? (
+                    <button className="btn-ghost text-sm" onClick={() => disconnectEmail()} disabled={busy}>
+                      Desconectar
+                    </button>
+                  ) : (
+                    <ConnectButtons />
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              <a href="/api/email/connect/google" className="btn-primary text-sm">
-                Conectar Gmail
-              </a>
-              <a href="/api/email/connect/microsoft" className="btn-primary text-sm">
-                Conectar Outlook
-              </a>
+          )}
+
+          {canManageBranchEmail && (
+            <div className="space-y-3">
+              <p className="font-medium text-slate-700 text-sm">
+                {emailData && emailData.branches.length > 0 ? "Por sucursal" : "Mi sucursal"}
+              </p>
+              {!emailData ? (
+                <p className="text-sm text-slate-400">Cargando sucursales…</p>
+              ) : emailData.branches.length === 0 ? (
+                <p className="text-sm text-slate-400">No hay sucursales.</p>
+              ) : (
+                emailData.branches.map((b) => (
+                  <div key={b.id} className="p-3 rounded-lg border border-slate-100">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-700 text-sm">{b.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {b.connected
+                            ? "Correo propio de esta sucursal"
+                            : "Usa el correo de la empresa o el SMTP global"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {b.connected && (
+                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm">
+                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                            {b.provider === "google" ? "Gmail" : "Outlook"} · {b.email}
+                          </span>
+                        )}
+                        {b.connected ? (
+                          <button
+                            className="btn-ghost text-sm"
+                            onClick={() => disconnectEmail(b.id)}
+                            disabled={busy}
+                          >
+                            Desconectar
+                          </button>
+                        ) : (
+                          <ConnectButtons branchId={b.id} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
           <div className="mt-3 p-3 rounded-lg bg-slate-50 text-xs text-slate-500">
-            Los tokens se guardan cifrados en la base de datos y se renuevan solos. La conexión solo
-            la puede hacer el administrador de la empresa (o la cuenta DIOS en modo empresa).
+            Los tokens se guardan cifrados en la base de datos y se renuevan solos. La conexión la
+            puede hacer el administrador de cada sucursal, el administrador de la empresa o la
+            cuenta DIOS en modo empresa.
           </div>
         </section>
       )}

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
 export type EmailProvider = "google" | "microsoft";
+export type EmailScope = "company" | "branch";
 
 export const EMAIL_OAUTH_PROVIDERS: EmailProvider[] = ["google", "microsoft"];
 
@@ -31,13 +32,22 @@ export function getProviderReady(provider: EmailProvider): ProviderReadyResult {
   return { ok: true };
 }
 
-export interface CompanyEmailConfigRow {
-  companyId: string;
+/** Forma común de un par de tokens OAuth (compañía o sucursal). */
+export interface StoredTokenRow {
   provider: EmailProvider;
   email: string;
   accessTokenEnc: string;
   refreshTokenEnc: string;
   expiresAt: Date;
+}
+
+export interface CompanyEmailConfigRow extends StoredTokenRow {
+  companyId: string;
+}
+
+export interface BranchEmailConfigRow extends StoredTokenRow {
+  branchId: string;
+  companyId: string;
 }
 
 interface ProviderSettings {
@@ -117,6 +127,15 @@ export async function getCompanyEmailConfig(
   return { ...row, provider: row.provider as EmailProvider };
 }
 
+export async function getBranchEmailConfig(
+  branchId?: string | null
+): Promise<BranchEmailConfigRow | null> {
+  if (!branchId) return null;
+  const row = await prisma.branchEmailConfig.findUnique({ where: { branchId } });
+  if (!row) return null;
+  return { ...row, provider: row.provider as EmailProvider };
+}
+
 export function buildOAuthUrl(
   provider: EmailProvider,
   baseUrl: string,
@@ -167,7 +186,7 @@ export async function exchangeCode(
 }
 
 async function refreshAccessToken(
-  config: CompanyEmailConfigRow
+  config: StoredTokenRow
 ): Promise<{ accessToken: string; expiresIn: number }> {
   const p = getProviderSettings(config.provider);
   const form = new URLSearchParams({
@@ -189,21 +208,20 @@ async function refreshAccessToken(
   return { accessToken: data.access_token, expiresIn: Number(data.expires_in) || 3600 };
 }
 
+/**
+ * Devuelve un access token fresco (renueva y persiste si caducó).
+ * `persist` guarda el nuevo token en la tabla correcta (compañía o sucursal).
+ */
 export async function ensureFreshAccessToken(
-  config: CompanyEmailConfigRow
+  config: StoredTokenRow,
+  persist: (accessTokenEnc: string, expiresAt: Date) => Promise<unknown>
 ): Promise<{ accessToken: string; email: string }> {
   const fresh = Date.now() < new Date(config.expiresAt).getTime() - 120_000;
   if (fresh)
     return { accessToken: decryptSecret(config.accessTokenEnc), email: config.email };
 
   const { accessToken, expiresIn } = await refreshAccessToken(config);
-  await prisma.companyEmailConfig.update({
-    where: { companyId: config.companyId },
-    data: {
-      accessTokenEnc: encryptSecret(accessToken),
-      expiresAt: new Date(Date.now() + expiresIn * 1000),
-    },
-  });
+  await persist(encryptSecret(accessToken), new Date(Date.now() + expiresIn * 1000));
   return { accessToken, email: config.email };
 }
 
@@ -220,4 +238,24 @@ export function extractEmailFromIdToken(idToken?: string | null): string | null 
   } catch {
     return null;
   }
+}
+
+/** Codifica el `state` del flujo OAuth con el destino (empresa o sucursal). */
+export function buildOAuthState(companyId: string, scope: EmailScope, branchId?: string | null): string {
+  return `${companyId}.${scope}.${branchId || ""}.${crypto.randomBytes(16).toString("hex")}`;
+}
+
+export interface ParsedOAuthState {
+  companyId: string;
+  scope: EmailScope;
+  branchId: string | null;
+}
+
+export function parseOAuthState(state?: string | null): ParsedOAuthState | null {
+  if (!state) return null;
+  const parts = state.split(".");
+  if (parts.length < 4) return null;
+  const scope = parts[1] as EmailScope;
+  if (scope !== "company" && scope !== "branch") return null;
+  return { companyId: parts[0], scope, branchId: parts[2] || null };
 }
