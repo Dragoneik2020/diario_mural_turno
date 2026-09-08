@@ -17,10 +17,24 @@ model Company {
   currentPeriodEnd DateTime?
   branches         Branch[]
   orders           Order[]
+  emailConfig      CompanyEmailConfig?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([planId])
+}
+
+/// Correo saliente del tenant vía OAuth (Gmail o Outlook).
+model CompanyEmailConfig {
+  companyId      String   @id
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  provider       String // google | microsoft
+  email          String
+  accessTokenEnc String
+  refreshTokenEnc String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Plan {

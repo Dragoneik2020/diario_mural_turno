@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-export default function EmailNotificationsEditor() {
+interface EmailNotificationsEditorProps {
+  canConnectEmail?: boolean;
+}
+
+export default function EmailNotificationsEditor({
+  canConnectEmail = false,
+}: EmailNotificationsEditorProps) {
   const [enabled, setEnabled] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -23,11 +29,33 @@ export default function EmailNotificationsEditor() {
   const [smtpFrom, setSmtpFrom] = useState("");
   const [cronSecret, setCronSecret] = useState("");
 
+  const [emailConnected, setEmailConnected] = useState<{
+    connected: boolean;
+    provider?: string;
+    email?: string;
+  } | null>(null);
+  const [emailConnError, setEmailConnError] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loaded, setLoaded] = useState(false);
 
+  const loadEmailConfig = useCallback(() => {
+    fetch("/api/email/config")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.connected !== undefined) setEmailConnected(d);
+      })
+      .catch(() => setEmailConnected(null));
+  }, []);
+
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const st = params.get("email");
+    if (st === "connected") setEmailMsg("Correo del negocio conectado correctamente.");
+    else if (st) setEmailMsg("No se pudo conectar: " + st.replace(/^error:/, ""));
+
     fetch("/api/settings/email-notifications")
       .then((r) => r.json())
       .then((d) => {
@@ -46,13 +74,29 @@ export default function EmailNotificationsEditor() {
         setSmtpPort(String(s.port || 587));
         setSmtpSecure(!!s.secure);
         setSmtpUser(s.user || "");
-         setSmtpPass("");
+        setSmtpPass("");
         setSmtpFrom(s.from || "");
-         setCronSecret("");
+        setCronSecret("");
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-  }, []);
+
+    if (canConnectEmail) loadEmailConfig();
+  }, [canConnectEmail, loadEmailConfig]);
+
+  async function disconnectEmail() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/email/config", { method: "DELETE" });
+      if (!res.ok) throw new Error("Error");
+      setEmailConnected({ connected: false });
+      setEmailMsg("Correo del negocio desconectado. Se usará el SMTP global.");
+    } catch {
+      setEmailMsg("No se pudo desconectar el correo.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -78,10 +122,10 @@ export default function EmailNotificationsEditor() {
             port: Number(smtpPort) || 587,
             secure: smtpSecure,
             user: smtpUser,
-             ...(smtpPass ? { pass: smtpPass } : {}),
+            ...(smtpPass ? { pass: smtpPass } : {}),
             from: smtpFrom,
           },
-           ...(cronSecret ? { cronSecret } : {}),
+          ...(cronSecret ? { cronSecret } : {}),
         }),
       });
       if (!res.ok) throw new Error("Error al guardar");
@@ -148,6 +192,47 @@ export default function EmailNotificationsEditor() {
           </p>
         </div>
       </section>
+
+      {/* Correo saliente del negocio (OAuth) */}
+      {canConnectEmail && (
+        <section className="border-t border-slate-100 pt-4">
+          <h4 className="font-medium text-slate-700 mb-2">Correo saliente del negocio</h4>
+          <p className="text-sm text-slate-500 mb-3">
+            Conecta Gmail o Outlook y tu negocio enviará las notificaciones desde su propio correo,
+            sin depender del SMTP global. Si desconectas, se vuelve a usar el SMTP global.
+          </p>
+
+          {emailMsg && <p className="text-sm text-green-600 mb-3">{emailMsg}</p>}
+          {emailConnError && <p className="text-sm text-red-600 mb-3">{emailConnError}</p>}
+
+          {emailConnected?.connected ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                Conectado: {emailConnected.provider === "google" ? "Gmail" : "Outlook"} ·{" "}
+                {emailConnected.email}
+              </span>
+              <button className="btn-ghost text-sm" onClick={disconnectEmail} disabled={busy}>
+                Desconectar
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              <a href="/api/email/connect/google" className="btn-primary text-sm">
+                Conectar Gmail
+              </a>
+              <a href="/api/email/connect/microsoft" className="btn-primary text-sm">
+                Conectar Outlook
+              </a>
+            </div>
+          )}
+
+          <div className="mt-3 p-3 rounded-lg bg-slate-50 text-xs text-slate-500">
+            Los tokens se guardan cifrados en la base de datos y se renuevan solos. La conexión solo
+            la puede hacer el administrador de la empresa (o la cuenta DIOS en modo empresa).
+          </div>
+        </section>
+      )}
 
       {/* Recordatorio matutino */}
       <section className="border-t border-slate-100 pt-4">

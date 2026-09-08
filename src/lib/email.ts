@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer, { Transporter } from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { notifyTelegramShift } from "@/lib/telegram";
@@ -9,6 +9,11 @@ import {
   getSmtpConfig,
   EmailNotifConfig,
 } from "@/lib/settings";
+import {
+  companyIdFromBranch,
+  ensureFreshAccessToken,
+  getCompanyEmailConfig,
+} from "@/lib/emailOAuth";
 
 interface WorkerLite {
   name: string;
@@ -53,6 +58,49 @@ function fillTemplate(tpl: string, worker: WorkerLite, shift: ShiftLite, typeLab
   return tpl.replace(/\{[a-z]+\}/gi, (m) => (m in map ? map[m] : m));
 }
 
+/** Transporte saliente: si el tenant conectó Gmail/Outlook usa OAuth; si no, SMTP global. */
+async function buildTransporter(
+  companyId?: string | null
+): Promise<{ transporter: Transporter; from: string } | null> {
+  if (companyId) {
+    const cfg = await getCompanyEmailConfig(companyId);
+    if (cfg) {
+      try {
+        const { accessToken, email } = await ensureFreshAccessToken(cfg);
+        const transporter = nodemailer.createTransport(
+          cfg.provider === "google"
+            ? {
+                service: "Gmail",
+                auth: { type: "OAuth2", user: email, accessToken },
+              }
+            : {
+                host: "smtp.office365.com",
+                port: 587,
+                secure: false,
+                auth: { type: "OAuth2", user: email, accessToken },
+              }
+        );
+        return { transporter, from: email };
+      } catch (e: any) {
+        console.error("[email] OAuth del tenant falló, usando SMTP global:", e?.message || e);
+      }
+    }
+  }
+
+  const smtp = await getSmtpConfig();
+  if (!smtp.host) {
+    console.warn("[email] SMTP no configurado; no se envió notificación.");
+    return null;
+  }
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: Number(smtp.port) || 587,
+    secure: !!smtp.secure,
+    auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
+  });
+  return { transporter, from: smtp.from || smtp.user || "" };
+}
+
 export async function notifyShiftAssigned(
   worker: WorkerLite,
   shift: ShiftLite,
@@ -65,23 +113,14 @@ export async function notifyShiftAssigned(
   if (template === "morning" && !cfg.morningEnabled) return false;
   if (template === "assignment" && !cfg.enabled) return false;
 
-  const smtp = await getSmtpConfig();
-  if (!smtp.host) {
-    console.warn("[email] SMTP no configurado; no se envió notificación.");
-    return false;
-  }
+  const companyId = await companyIdFromBranch(branchId);
+  const mailer = await buildTransporter(companyId);
+  if (!mailer) return false;
 
   try {
     const { subject, body } = pickTemplate(cfg, template);
-    const transporter = nodemailer.createTransport({
-      host: smtp.host,
-      port: Number(smtp.port) || 587,
-      secure: !!smtp.secure,
-      auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
-    });
-
-    await transporter.sendMail({
-      from: smtp.from || smtp.user || worker.email,
+    await mailer.transporter.sendMail({
+      from: mailer.from || worker.email,
       to: worker.email,
       subject: fillTemplate(subject, worker, shift, typeLabel),
       text: fillTemplate(body, worker, shift, typeLabel),
@@ -103,11 +142,9 @@ export async function notifyAccountCreated(
   const cfg = await getEmailNotifications(branchId);
   if (!cfg.welcomeEnabled) return false;
 
-  const smtp = await getSmtpConfig();
-  if (!smtp.host) {
-    console.warn("[email] SMTP no configurado; no se envió correo de bienvenida.");
-    return false;
-  }
+  const companyId = await companyIdFromBranch(branchId);
+  const mailer = await buildTransporter(companyId);
+  if (!mailer) return false;
 
   const map: Record<string, string> = {
     "{nombre}": worker.name,
@@ -120,15 +157,8 @@ export async function notifyAccountCreated(
     tpl.replace(/\{[a-z]+\}/gi, (m) => (m in map ? map[m] : m));
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: smtp.host,
-      port: Number(smtp.port) || 587,
-      secure: !!smtp.secure,
-      auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
-    });
-
-    await transporter.sendMail({
-      from: smtp.from || smtp.user || worker.email,
+    await mailer.transporter.sendMail({
+      from: mailer.from || worker.email,
       to: worker.email,
       subject: fillWelcome(cfg.welcomeSubject),
       text: fillWelcome(cfg.welcomeBody),
