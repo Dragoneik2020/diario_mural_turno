@@ -317,8 +317,18 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
             {result && (
               <div className="text-sm mb-3 p-3 rounded-lg bg-[#151528] border border-white/10">
                 <p className="font-medium text-slate-800">
-                  Creados: {result.created} · Errores: {result.errors?.length || 0}
+                  Creados: {result.created} · Actualizados: {result.updated ?? 0} · Errores:{" "}
+                  {result.errors?.length || 0}
                 </p>
+                {result.updatedRows?.length > 0 && (
+                  <ul className="mt-1 text-emerald-500 text-xs list-disc pl-4">
+                    {result.updatedRows.slice(0, 10).map((u: any, i: number) => (
+                      <li key={i}>
+                        {u.savedRut} · {u.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {result.errors?.length > 0 && (
                   <ul className="mt-1 text-red-600 text-xs list-disc pl-4">
                     {result.errors.slice(0, 10).map((e: any, i: number) => (

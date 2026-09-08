@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const created: { email: string; name: string }[] = [];
+    const updated: { email: string; name: string; savedRut: string }[] = [];
     const errors: { email: string; error: string }[] = [];
 
     for (const raw of items) {
@@ -91,14 +92,44 @@ export async function POST(req: NextRequest) {
         rowCompanyId = b?.companyId ?? null;
       }
 
+      const exists = await prisma.user.findUnique({ where: { email } });
+      if (exists) {
+        // El email ya existe: en lugar de rechazar, actualizamos RUT (y datos
+        // opcionales como cargo/sucursal) si la fila los trae.
+        const changes: Record<string, unknown> = {};
+        if (rutNorm && exists.rut !== rutNorm) {
+          const rutExists = await prisma.user.findUnique({ where: { rut: rutNorm } });
+          if (rutExists && rutExists.id !== exists.id) {
+            errors.push({ email, error: "El RUT ya está registrado por otra cuenta" });
+            continue;
+          }
+          changes.rut = rutNorm;
+        }
+        if (cargo) changes.cargo = cargo;
+        const effBranchId = rowBranchId;
+        if (effBranchId && exists.branchId !== effBranchId) changes.branchId = effBranchId;
+        if (rowCompanyId && exists.companyId !== rowCompanyId) changes.companyId = rowCompanyId;
+
+        if (Object.keys(changes).length > 0) {
+          try {
+            const upd = await prisma.user.update({
+              where: { id: exists.id },
+              data: changes,
+              select: { id: true, name: true, email: true },
+            });
+            if (changes.rut) {
+              updated.push({ email: upd.email, name: upd.name, savedRut: rutNorm as string });
+            }
+          } catch {
+            errors.push({ email, error: "Error al actualizar" });
+          }
+        }
+        continue;
+      }
+
       const password = parsed.data.password || defaultPassword;
       if (!password) {
         errors.push({ email, error: "Sin contraseña (falta en fila y sin default)" });
-        continue;
-      }
-      const exists = await prisma.user.findUnique({ where: { email } });
-      if (exists) {
-        errors.push({ email, error: "El email ya está registrado" });
         continue;
       }
       if (rutNorm) {
@@ -138,7 +169,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ created: created.length, createdRows: created, errors });
+    return NextResponse.json({
+      created: created.length,
+      createdRows: created,
+      updated: updated.length,
+      updatedRows: updated,
+      errors,
+    });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
