@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ShiftForm, { UserOption } from "@/components/ShiftForm";
+import ShiftsBulkImport from "@/components/ShiftsBulkImport";
 import {
   SHIFT_TYPE_STYLES,
   SHIFT_STATUS_LABELS,
@@ -56,14 +57,17 @@ export default function ShiftsManager({
     <section className="card">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="font-semibold text-slate-800 flex items-center gap-2"><ListChecks className="h-5 w-5 text-brand-600" /> Todos los turnos</h2>
-        <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="">Todos los trabajadores</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="">Todos los trabajadores</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <ShiftsBulkImport users={users} onDone={() => router.refresh()} />
+        </div>
       </div>
 
       <details className="mb-4">

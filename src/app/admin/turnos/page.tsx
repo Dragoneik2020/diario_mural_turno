@@ -20,7 +20,7 @@ export default async function TurnosPage() {
     prisma.user.findMany({
       where: { ...scope },
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, department: true },
+      select: { id: true, name: true, department: true, rut: true },
     }),
     prisma.shift.findMany({
       where: { ...scope },

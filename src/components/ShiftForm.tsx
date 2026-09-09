@@ -9,6 +9,7 @@ export interface UserOption {
   id: string;
   name: string;
   department: string | null;
+  rut?: string | null;
 }
 
 export interface EditableShift {
