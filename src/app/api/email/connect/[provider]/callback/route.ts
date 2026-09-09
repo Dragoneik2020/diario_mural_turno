@@ -31,11 +31,25 @@ async function fetchIdTokenClaims(provider: EmailProvider, accessToken: string):
   return null;
 }
 
+async function fetchEmailFromTokenInfo(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.email || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest, { params }: { params: { provider: string } }) {
   const provider = params.provider as EmailProvider;
   if (!EMAIL_OAUTH_PROVIDERS.includes(provider)) {
     return NextResponse.json({ error: "Proveedor no soportado" }, { status: 400 });
   }
+  const base = getRequestOrigin(req) || req.url;
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
@@ -44,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
 
   if (errorParam) {
     return NextResponse.redirect(
-      new URL(`/admin/notificaciones?email=error:${encodeURIComponent(errorParam)}`, req.url)
+      new URL(`/admin/notificaciones?email=error:${encodeURIComponent(errorParam)}`, base)
     );
   }
 
@@ -53,14 +67,14 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
 
   if (!code || !state || !savedState || state !== savedState) {
     return NextResponse.redirect(
-      new URL("/admin/notificaciones?email=error:invalid_state", req.url)
+      new URL("/admin/notificaciones?email=error:invalid_state", base)
     );
   }
 
   const parsed = parseOAuthState(state);
   if (!parsed || !parsed.companyId) {
     return NextResponse.redirect(
-      new URL("/admin/notificaciones?email=error:invalid_company", req.url)
+      new URL("/admin/notificaciones?email=error:invalid_company", base)
     );
   }
 
@@ -75,13 +89,14 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
 
     if (!accessToken) {
       return NextResponse.redirect(
-        new URL("/admin/notificaciones?email=error:no_token", req.url)
+        new URL("/admin/notificaciones?email=error:no_token", base)
       );
     }
 
     const emailFromToken = extractEmailFromIdToken(idToken);
     const emailFromApi = await fetchIdTokenClaims(provider, accessToken);
-    const accountEmail = emailFromToken || emailFromApi;
+    const emailFromInfo = emailFromToken || emailFromApi ? null : await fetchEmailFromTokenInfo(accessToken);
+    const accountEmail = emailFromToken || emailFromApi || emailFromInfo;
 
     // Si el proveedor no devuelve refresh_token (Google solo en el primer
     // consent), conserva el existente para no romper renovaciones.
@@ -101,7 +116,7 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
 
     if (!accountEmail || !finalRefreshToken) {
       return NextResponse.redirect(
-        new URL("/admin/notificaciones?email=error:no_account_email", req.url)
+        new URL("/admin/notificaciones?email=error:no_account_email", base)
       );
     }
 
@@ -132,12 +147,12 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
     }
 
     return NextResponse.redirect(
-      new URL("/admin/notificaciones?email=connected", req.url)
+      new URL("/admin/notificaciones?email=connected", base)
     );
   } catch (e: any) {
     console.error("[emailOAuth] callback falló:", e?.message || e);
     return NextResponse.redirect(
-      new URL(`/admin/notificaciones?email=error:${encodeURIComponent(e?.message || "unknown")}`, req.url)
+      new URL(`/admin/notificaciones?email=error:${encodeURIComponent(e?.message || "unknown")}`, base)
     );
   }
 }

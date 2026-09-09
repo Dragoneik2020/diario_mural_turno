@@ -115,7 +115,8 @@ export function getProviderSettings(provider: EmailProvider): ProviderSettings {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
-      scope: "https://www.googleapis.com/auth/gmail.send",
+      scope:
+        "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email",
     };
   }
   return {
