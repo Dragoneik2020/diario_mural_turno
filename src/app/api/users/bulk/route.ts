@@ -92,34 +92,46 @@ export async function POST(req: NextRequest) {
         rowCompanyId = b?.companyId ?? null;
       }
 
+      // El RUT es la clave de la cuenta en la app: si la fila trae un RUT
+      // ya registrado, esa es la cuenta a actualizar (aunque el email difiera);
+      // si no, se usa el email para ubicar la cuenta y asignarle el RUT.
       const exists = await prisma.user.findUnique({ where: { email } });
-      if (exists) {
-        // El email ya existe: en lugar de rechazar, actualizamos RUT (y datos
-        // opcionales como cargo/sucursal) si la fila los trae.
+      let target:
+        | { id: string; email: string; rut: string | null; branchId: string | null; companyId: string | null }
+        | null = null;
+      if (rutNorm) {
+        target = await prisma.user.findUnique({ where: { rut: rutNorm } });
+      }
+      if (!target) target = exists;
+
+      if (target) {
         const changes: Record<string, unknown> = {};
-        if (rutNorm && exists.rut !== rutNorm) {
-          const rutExists = await prisma.user.findUnique({ where: { rut: rutNorm } });
-          if (rutExists && rutExists.id !== exists.id) {
-            errors.push({ email, error: "El RUT ya está registrado por otra cuenta" });
-            continue;
-          }
-          changes.rut = rutNorm;
-        }
+        if (rutNorm && target.rut !== rutNorm) changes.rut = rutNorm;
         if (cargo) changes.cargo = cargo;
         const effBranchId = rowBranchId;
-        if (effBranchId && exists.branchId !== effBranchId) changes.branchId = effBranchId;
-        if (rowCompanyId && exists.companyId !== rowCompanyId) changes.companyId = rowCompanyId;
+        if (effBranchId && target.branchId !== effBranchId) changes.branchId = effBranchId;
+        if (rowCompanyId && target.companyId !== rowCompanyId) changes.companyId = rowCompanyId;
+        if (target.email !== email) {
+          const emailOwner = await prisma.user.findUnique({ where: { email } });
+          if (emailOwner && emailOwner.id !== target.id) {
+            errors.push({ email, error: "El email ya está registrado por otra cuenta" });
+            continue;
+          }
+          changes.email = email;
+        }
 
         if (Object.keys(changes).length > 0) {
           try {
             const upd = await prisma.user.update({
-              where: { id: exists.id },
+              where: { id: target.id },
               data: changes,
               select: { id: true, name: true, email: true },
             });
-            if (changes.rut) {
-              updated.push({ email: upd.email, name: upd.name, savedRut: rutNorm as string });
-            }
+            updated.push({
+              email: upd.email,
+              name: upd.name,
+              savedRut: (rutNorm ?? target.rut ?? "") as string,
+            });
           } catch {
             errors.push({ email, error: "Error al actualizar" });
           }

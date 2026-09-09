@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   status: z.enum(["pendiente", "activa", "cancelada"]).optional(),
   planId: z.string().optional(),
+  name: z.string().trim().min(2).max(80).optional(),
 });
 
 export async function PATCH(
@@ -34,6 +35,7 @@ export async function PATCH(
       data: {
         status: parsed.status,
         planId: parsed.planId !== undefined ? parsed.planId : existing.planId,
+        ...(parsed.name !== undefined ? { name: parsed.name } : {}),
       },
     });
     return NextResponse.json({ company });

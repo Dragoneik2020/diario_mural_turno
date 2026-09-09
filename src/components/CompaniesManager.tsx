@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, ChevronDown, Clock, DoorOpen, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, ChevronDown, Clock, DoorOpen, Pencil, XCircle } from "lucide-react";
 
 interface PlanLite { id: string; code: string; name: string; priceMensual: number; }
 interface OrderLite { id: string; status: string; amount: number; period: string; paidAt: string | null; createdAt: string; plan: { name: string }; }
@@ -57,7 +57,7 @@ export default function CompaniesManager() {
     load();
   }, []);
 
-  async function patchCompany(id: string, data: { status?: string; planId?: string }) {
+  async function patchCompany(id: string, data: { status?: string; planId?: string; name?: string }) {
     setSavingId(id);
     setError("");
     const res = await fetch(`/api/companies/${id}`, {
@@ -156,6 +156,17 @@ export default function CompaniesManager() {
                     <h3 className="font-display text-[15px] font-semibold text-white">
                       {c.name}
                     </h3>
+                    <button
+                      onClick={() => {
+                        const nuevo = window.prompt("Nuevo nombre de la empresa", c.name)?.trim();
+                        if (nuevo && nuevo !== c.name) patchCompany(c.id, { name: nuevo });
+                      }}
+                      disabled={isSaving}
+                      className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                      title="Renombrar empresa"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
                     <span className={`badge ${st.cls}`}>
                       <StIcon className="h-3 w-3" /> {st.label}
                     </span>

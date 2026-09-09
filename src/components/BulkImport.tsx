@@ -228,9 +228,10 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
             <p className="text-sm text-slate-500 mb-2">
               Usa la planilla <b>Planilla_trabajadores_ejemplo.xlsx</b> (o CSV): columnas{" "}
               <b>RUT, Nombre, Apellido Paterno, Apellido Materno, telefono, correo electronico, Sucursal, Cargo, Departamento, Rol, Clave de acceso</b>.
-              El <b>RUT</b> es el usuario de acceso a la app. El teléfono es informativo. Si el email ya existe,
-              se actualizan RUT/Cargo/Sucursal. <b>Departamento, Rol y Clave</b> son opcionales (Rol: Trabajador o Admin;
-              sin clave se usa la contraseña por defecto).
+              El <b>RUT</b> es la clave de la cuenta (el usuario de acceso a la app): si ya existe una cuenta con ese
+              RUT se actualizan sus datos; si no, se usa el <b>email</b> para ubicarla y asignarle el RUT. El teléfono
+              es informativo. <b>Departamento, Rol y Clave</b> son opcionales (Rol: Trabajador o Admin; sin clave se
+              usa la contraseña por defecto).
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
