@@ -1,4 +1,4 @@
-import nodemailer, { Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { notifyTelegramShift } from "@/lib/telegram";
@@ -61,14 +61,52 @@ function fillTemplate(tpl: string, worker: WorkerLite, shift: ShiftLite, typeLab
 }
 
 /**
- * Transporte saliente con prioridad:
+ * Remitente saliente con prioridad:
  * 1) correo OAuth de la sucursal (si lo conectó) → 2) correo OAuth de la
  * empresa (si lo conectó) → 3) SMTP global.
  */
-async function buildTransporter(
+interface Mailer {
+  from: string;
+  send(to: string, subject: string, text: string): Promise<unknown>;
+}
+
+function base64Url(buf: Buffer): string {
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Envía por la API REST de Gmail (scope gmail.send; no requiere mail.google.com). */
+async function sendViaGmailApi(
+  accessToken: string,
+  from: string,
+  to: string,
+  subject: string,
+  text: string
+): Promise<unknown> {
+  const raw = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/plain; charset=UTF-8',
+    "",
+    text,
+  ].join("\r\n");
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ raw: base64Url(Buffer.from(raw, "utf8")) }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`Gmail API send falló (${res.status}): ${err}`);
+  }
+  return res.json().catch(() => ({}));
+}
+
+async function buildMailer(
   branchId?: string | null,
   companyIdOverride?: string | null
-): Promise<{ transporter: Transporter; from: string } | null> {
+): Promise<Mailer | null> {
   if (branchId) {
     const branchCfg = await getBranchEmailConfig(branchId);
     if (branchCfg) {
@@ -108,27 +146,37 @@ async function buildTransporter(
     secure: !!smtp.secure,
     auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
   });
-  return { transporter, from: smtp.from || smtp.user || "" };
+  const from = smtp.from || smtp.user || "";
+  return {
+    from,
+    send: (to, subject, text) =>
+      transporter.sendMail({ from: from || to, to, subject, text }),
+  };
 }
 
-/** Monta un transporter OAuth (Gmail o Outlook) desde los tokens guardados. */
+/** Monta un remitente OAuth (Gmail vía API, Outlook vía SMTP) desde los tokens guardados. */
 async function tryOAuthMailer(
   cfg: StoredTokenRow,
   persist: (accessTokenEnc: string, expiresAt: Date) => Promise<unknown>
-): Promise<{ transporter: Transporter; from: string } | null> {
+): Promise<Mailer | null> {
   try {
     const { accessToken, email } = await ensureFreshAccessToken(cfg, persist);
-    const transporter = nodemailer.createTransport(
-      cfg.provider === "google"
-        ? { service: "Gmail", auth: { type: "OAuth2", user: email, accessToken } }
-        : {
-            host: "smtp.office365.com",
-            port: 587,
-            secure: false,
-            auth: { type: "OAuth2", user: email, accessToken },
-          }
-    );
-    return { transporter, from: email };
+    if (cfg.provider === "google") {
+      return {
+        from: email,
+        send: (to, subject, text) => sendViaGmailApi(accessToken, email, to, subject, text),
+      };
+    }
+    const transporter = nodemailer.createTransport({
+      host: "smtp.office365.com",
+      port: 587,
+      secure: false,
+      auth: { type: "OAuth2", user: email, accessToken },
+    });
+    return {
+      from: email,
+      send: (to, subject, text) => transporter.sendMail({ from: email, to, subject, text }),
+    };
   } catch (e: any) {
     console.error("[email] OAuth del tenant falló, probando siguiente remitente:", e?.message || e);
     return null;
@@ -147,17 +195,12 @@ export async function notifyShiftAssigned(
   if (template === "morning" && !cfg.morningEnabled) return false;
   if (template === "assignment" && !cfg.enabled) return false;
 
-  const mailer = await buildTransporter(branchId);
+  const mailer = await buildMailer(branchId);
   if (!mailer) return false;
 
   try {
     const { subject, body } = pickTemplate(cfg, template);
-    await mailer.transporter.sendMail({
-      from: mailer.from || worker.email,
-      to: worker.email,
-      subject: fillTemplate(subject, worker, shift, typeLabel),
-      text: fillTemplate(body, worker, shift, typeLabel),
-    });
+    await mailer.send(worker.email, fillTemplate(subject, worker, shift, typeLabel), fillTemplate(body, worker, shift, typeLabel));
     return true;
   } catch (e: any) {
     console.error("[email] Error enviando notificación:", e?.message || e);
@@ -175,7 +218,7 @@ export async function notifyAccountCreated(
   const cfg = await getEmailNotifications(branchId);
   if (!cfg.welcomeEnabled) return false;
 
-  const mailer = await buildTransporter(branchId);
+  const mailer = await buildMailer(branchId);
   if (!mailer) return false;
 
   const map: Record<string, string> = {
@@ -189,12 +232,7 @@ export async function notifyAccountCreated(
     tpl.replace(/\{[a-z]+\}/gi, (m) => (m in map ? map[m] : m));
 
   try {
-    await mailer.transporter.sendMail({
-      from: mailer.from || worker.email,
-      to: worker.email,
-      subject: fillWelcome(cfg.welcomeSubject),
-      text: fillWelcome(cfg.welcomeBody),
-    });
+    await mailer.send(worker.email, fillWelcome(cfg.welcomeSubject), fillWelcome(cfg.welcomeBody));
     return true;
   } catch (e: any) {
     console.error("[email] Error enviando correo de bienvenida:", e?.message || e);
