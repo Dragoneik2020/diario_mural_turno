@@ -58,6 +58,7 @@ export default function ShiftForm({
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("asignado");
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -110,6 +111,11 @@ export default function ShiftForm({
     }
     setName("");
     setNotes("");
+    if (!editing) {
+      // modo "registrar varios": el formulario queda listo para el próximo turno
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 4000);
+    }
     router.refresh();
     if (onDone) onDone();
   }
@@ -180,6 +186,9 @@ export default function ShiftForm({
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
+      {saved && !editing && (
+        <div className="text-sm text-green-600">Turno registrado. Puedes seguir agregando más.</div>
+      )}
 
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? "Guardando..." : editing ? "Guardar cambios" : "Registrar turno"}
