@@ -26,10 +26,11 @@ export async function GET(req: NextRequest) {
     }
 
     const list = await getCargos(branchId);
-    const scope = { ...branchWhere(session) };
+    const scope: Record<string, unknown> = { ...branchWhere(session) };
+    if (branchId && session.branchId !== branchId) scope.branchId = branchId;
     const groups = await prisma.user.groupBy({
       by: ["cargo"],
-      where: { cargo: { in: list }, ...scope },
+      where: { cargo: { in: list }, ...scope } as any,
       _count: { _all: true },
     });
     const counts: Record<string, number> = {};
@@ -50,7 +51,24 @@ export async function PATCH(req: NextRequest) {
     const cargos: string[] = Array.isArray(input)
       ? input.map((c: unknown) => String(c).trim()).filter((c: string) => c.length > 0)
       : [...DEFAULT_CARGOS];
-    const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
+
+    // Un admin de sucursal siempre edita la suya; superadmin/dios pueden
+    // elegir la sucursal destino (validada) o el predeterminado global.
+    let branchId = session.branchId ?? GLOBAL_BRANCH_ID;
+    if (isMultiBranch(session) && body?.branchId) {
+      const allowed =
+        session.role !== "superadmin" ||
+        (
+          await prisma.branch.findFirst({
+            where: { id: body.branchId, companyId: session.companyId ?? "__NONE__" },
+            select: { id: true },
+          })
+        ) !== null;
+      if (!allowed)
+        return NextResponse.json({ error: "Sucursal fuera de tu empresa" }, { status: 403 });
+      branchId = body.branchId;
+    }
+
     await prisma.setting.upsert({
       where: { branchId_key: { branchId, key: "cargos" } },
       update: { value: JSON.stringify(cargos) },

@@ -9,6 +9,11 @@ interface Item {
   users: number;
 }
 
+interface BranchLite {
+  id: string;
+  name: string;
+}
+
 function CategoryCard({
   title,
   icon: Icon,
@@ -16,6 +21,7 @@ function CategoryCard({
   field,
   placeholder,
   hint,
+  branchId,
 }: {
   title: string;
   icon: typeof Building2;
@@ -23,6 +29,7 @@ function CategoryCard({
   field: string;
   placeholder: string;
   hint: string;
+  branchId: string;
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [newItem, setNewItem] = useState("");
@@ -33,7 +40,8 @@ function CategoryCard({
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(api);
+      const url = branchId ? `${api}?branchId=${encodeURIComponent(branchId)}` : api;
+      const res = await fetch(url);
       const d = await res.json().catch(() => ({}));
       const arr = Array.isArray(d[field]) ? d[field] : [];
       const counts =
@@ -44,7 +52,7 @@ function CategoryCard({
     } finally {
       setLoaded(true);
     }
-  }, [api, field]);
+  }, [api, field, branchId]);
 
   useEffect(() => {
     load();
@@ -74,9 +82,15 @@ function CategoryCard({
       const res = await fetch(api, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: items.map((x) => x.name) }),
+        body: JSON.stringify({
+          [field]: items.map((x) => x.name),
+          ...(branchId ? { branchId } : {}),
+        }),
       });
-      if (!res.ok) throw new Error("error");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "error");
+      }
       setMsg("Lista guardada");
       load();
     } catch {
@@ -154,25 +168,58 @@ function CategoryCard({
   );
 }
 
-export default function DeptoCargoManager() {
+export default function DeptoCargoManager({
+  branches = [],
+}: {
+  branches?: BranchLite[];
+}) {
+  const [branchId, setBranchId] = useState("");
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <CategoryCard
-        title="Departamentos"
-        icon={Building2}
-        api="/api/settings/departamentos"
-        field="departamentos"
-        placeholder="Nuevo departamento"
-        hint="Define la lista de departamentos disponibles para asignar a los trabajadores."
-      />
-      <CategoryCard
-        title="Cargos"
-        icon={Briefcase}
-        api="/api/settings/cargos"
-        field="cargos"
-        placeholder="Nuevo cargo"
-        hint="Define la lista de cargos disponibles para asignar a los trabajadores."
-      />
+    <div className="space-y-4">
+      {branches.length > 1 && (
+        <div className="card flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <label className="label">Sucursal a administrar</label>
+            <select
+              className="input"
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+            >
+              <option value="">Predeterminado global (todas las sucursales)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 mt-1">
+              Cada sucursal puede tener su propia lista; lo global aplica solo a
+              sucursales sin lista propia.
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CategoryCard
+          title="Departamentos"
+          icon={Building2}
+          api="/api/settings/departamentos"
+          field="departamentos"
+          placeholder="Nuevo departamento"
+          hint="Define la lista de departamentos disponibles para asignar a los trabajadores."
+          branchId={branchId}
+        />
+        <CategoryCard
+          title="Cargos"
+          icon={Briefcase}
+          api="/api/settings/cargos"
+          field="cargos"
+          placeholder="Nuevo cargo"
+          hint="Define la lista de cargos disponibles para asignar a los trabajadores."
+          branchId={branchId}
+        />
+      </div>
     </div>
   );
 }

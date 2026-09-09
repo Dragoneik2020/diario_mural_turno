@@ -5,18 +5,36 @@ import {
   getDepartamentos,
   GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
-import { requireUser, requireAdmin, branchWhere } from "@/lib/session";
+import { requireUser, requireAdmin, branchWhere, isMultiBranch } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireUser();
-    const list = await getDepartamentos(session.branchId);
-    const scope = { ...branchWhere(session) };
+    const { searchParams } = new URL(req.url);
+    const requested = searchParams.get("branchId");
+
+    let branchId = session.branchId;
+    if (isMultiBranch(session) && requested) {
+      // El superadmin solo puede pedir sucursales de su empresa; dios cualquiera.
+      const allowed =
+        session.role !== "superadmin" ||
+        (
+          await prisma.branch.findFirst({
+            where: { id: requested, companyId: session.companyId ?? "__NONE__" },
+            select: { id: true },
+          })
+        ) !== null;
+      if (allowed) branchId = requested;
+    }
+
+    const list = await getDepartamentos(branchId);
+    const scope: Record<string, unknown> = { ...branchWhere(session) };
+    if (branchId && session.branchId !== branchId) scope.branchId = branchId;
     const groups = await prisma.user.groupBy({
       by: ["department"],
-      where: { department: { in: list }, ...scope },
+      where: { department: { in: list }, ...scope } as any,
       _count: { _all: true },
     });
     const counts: Record<string, number> = {};
@@ -40,7 +58,24 @@ export async function PATCH(req: NextRequest) {
     const departamentos: string[] = Array.isArray(input)
       ? input.map((d: unknown) => String(d).trim()).filter((d: string) => d.length > 0)
       : [...DEFAULT_DEPARTAMENTOS];
-    const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
+
+    // Un admin de sucursal siempre edita la suya; superadmin/dios pueden
+    // elegir la sucursal destino (validada) o el predeterminado global.
+    let branchId = session.branchId ?? GLOBAL_BRANCH_ID;
+    if (isMultiBranch(session) && body?.branchId) {
+      const allowed =
+        session.role !== "superadmin" ||
+        (
+          await prisma.branch.findFirst({
+            where: { id: body.branchId, companyId: session.companyId ?? "__NONE__" },
+            select: { id: true },
+          })
+        ) !== null;
+      if (!allowed)
+        return NextResponse.json({ error: "Sucursal fuera de tu empresa" }, { status: 403 });
+      branchId = body.branchId;
+    }
+
     await prisma.setting.upsert({
       where: { branchId_key: { branchId, key: "departamentos" } },
       update: { value: JSON.stringify(departamentos) },
