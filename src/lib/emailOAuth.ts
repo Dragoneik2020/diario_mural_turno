@@ -8,6 +8,24 @@ export const EMAIL_OAUTH_PROVIDERS: EmailProvider[] = ["google", "microsoft"];
 
 export const EMAIL_OAUTH_STATE_COOKIE = "email_oauth_state";
 
+interface HeaderLikeRequest {
+  url: string;
+  headers: { get(name: string): string | null };
+}
+
+/** Origen público de la petición, tolerante a proxies (Traefik) que terminan TLS. */
+export function getRequestOrigin(req: HeaderLikeRequest): string {
+  const first = (v: string | null) => v?.split(",")[0]?.trim() || null;
+  const proto = first(req.headers.get("x-forwarded-proto"));
+  const host = first(req.headers.get("x-forwarded-host")) ?? first(req.headers.get("host"));
+  if (proto && host) return `${proto}://${host}`;
+  try {
+    return new URL(req.url).origin;
+  } catch {
+    return "";
+  }
+}
+
 export type ProviderReadyResult =
   | { ok: true }
   | { ok: false; error: string; details: string };

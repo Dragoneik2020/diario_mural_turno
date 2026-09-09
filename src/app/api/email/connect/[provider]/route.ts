@@ -11,6 +11,7 @@ import {
   EmailProvider,
   EmailScope,
   getProviderReady,
+  getRequestOrigin,
 } from "@/lib/emailOAuth";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export async function GET(
       );
 
     const state = buildOAuthState(companyId, scope, branchId);
-    const origin = new URL(_req.url).origin;
+    const origin = getRequestOrigin(_req);
     cookies().set(EMAIL_OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
       sameSite: "lax",

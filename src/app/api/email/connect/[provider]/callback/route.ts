@@ -9,6 +9,7 @@ import {
   encryptSecret,
   exchangeCode,
   extractEmailFromIdToken,
+  getRequestOrigin,
   parseOAuthState,
 } from "@/lib/emailOAuth";
 
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest, { params }: { params: { provider: st
   }
 
   try {
-    const redirectUri = getRedirectUri(new URL(req.url).origin, provider);
+    const redirectUri = getRedirectUri(getRequestOrigin(req), provider);
     const tokens = (await exchangeCode(provider, code, redirectUri)) as Record<string, any>;
 
     const accessToken: string = tokens.access_token;
