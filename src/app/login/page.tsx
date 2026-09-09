@@ -132,30 +132,6 @@ export default function LoginPage() {
               {loading ? "Verificando..." : "Entrar →"}
             </button>
           </form>
-
-          <div className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-slate-400">
-            <strong className="text-slate-100">Cuentas de demostración (ingresa con el RUT)</strong>
-            <br />
-            <span className="badge !border-rose-400/30 !bg-rose-100 !text-rose-700 mt-1 mr-1">
-              DIOS
-            </span>
-            12345678-5 / admin123
-            <br />
-            <span className="badge !border-amber-400/30 !bg-amber-100 !text-amber-700 mr-1">
-              Super Admin
-            </span>
-            66666666-6 / admin123
-            <br />
-            <span className="badge !border-brand-400/30 !bg-brand-100 !text-brand-700 mr-1">
-              Admin
-            </span>
-            55555555-5 / admin123
-            <br />
-            <span className="badge !border-slate-400/30 !bg-slate-100 !text-slate-300 mr-1">
-              Trabajador
-            </span>
-            11111111-1 / trabajador123
-          </div>
         </div>
       </div>
     </main>
