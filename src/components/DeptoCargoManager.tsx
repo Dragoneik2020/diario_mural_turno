@@ -22,6 +22,7 @@ function CategoryCard({
   placeholder,
   hint,
   branchId,
+  disabled = false,
 }: {
   title: string;
   icon: typeof Building2;
@@ -30,6 +31,7 @@ function CategoryCard({
   placeholder: string;
   hint: string;
   branchId: string;
+  disabled?: boolean;
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [newItem, setNewItem] = useState("");
@@ -112,6 +114,7 @@ function CategoryCard({
           className="input"
           placeholder={placeholder}
           value={newItem}
+          disabled={disabled}
           onChange={(e) => setNewItem(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -120,7 +123,7 @@ function CategoryCard({
             }
           }}
         />
-        <button type="button" className="btn-secondary shrink-0" onClick={add}>
+        <button type="button" className="btn-secondary shrink-0" onClick={add} disabled={disabled}>
           Añadir
         </button>
       </div>
@@ -161,8 +164,8 @@ function CategoryCard({
         </ul>
       )}
 
-      <button className="btn-primary" onClick={save} disabled={busy}>
-        {busy ? "Guardando…" : "Guardar cambios"}
+      <button className="btn-primary" onClick={save} disabled={busy || disabled}>
+        {busy ? "Guardando…" : disabled ? "Elige una sucursal" : "Guardar cambios"}
       </button>
     </section>
   );
@@ -173,11 +176,12 @@ export default function DeptoCargoManager({
 }: {
   branches?: BranchLite[];
 }) {
-  const [branchId, setBranchId] = useState("");
+  const [branchId, setBranchId] = useState(() => branches[0]?.id ?? "");
+  const needsBranch = branches.length > 1;
 
   return (
     <div className="space-y-4">
-      {branches.length > 1 && (
+      {needsBranch && (
         <div className="card flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
             <label className="label">Sucursal a administrar</label>
@@ -186,7 +190,6 @@ export default function DeptoCargoManager({
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
             >
-              <option value="">Predeterminado global (todas las sucursales)</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -194,8 +197,8 @@ export default function DeptoCargoManager({
               ))}
             </select>
             <p className="text-xs text-slate-400 mt-1">
-              Cada sucursal puede tener su propia lista; lo global aplica solo a
-              sucursales sin lista propia.
+              Cada sucursal tiene su propia lista de departamentos y cargos;
+              no se comparten entre sucursales ni empresas.
             </p>
           </div>
         </div>
@@ -209,6 +212,7 @@ export default function DeptoCargoManager({
           placeholder="Nuevo departamento"
           hint="Define la lista de departamentos disponibles para asignar a los trabajadores."
           branchId={branchId}
+          disabled={!branchId && needsBranch}
         />
         <CategoryCard
           title="Cargos"
@@ -218,6 +222,7 @@ export default function DeptoCargoManager({
           placeholder="Nuevo cargo"
           hint="Define la lista de cargos disponibles para asignar a los trabajadores."
           branchId={branchId}
+          disabled={!branchId && needsBranch}
         />
       </div>
     </div>

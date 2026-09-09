@@ -52,10 +52,13 @@ export async function PATCH(req: NextRequest) {
       ? input.map((c: unknown) => String(c).trim()).filter((c: string) => c.length > 0)
       : [...DEFAULT_CARGOS];
 
-    // Un admin de sucursal siempre edita la suya; superadmin/dios pueden
-    // elegir la sucursal destino (validada) o el predeterminado global.
+    // Un admin de sucursal edita la suya; superadmin/dios DEBEN elegir la
+    // sucursal destino (validada). No hay escritura global: cada sucursal
+    // administra su propia lista.
     let branchId = session.branchId ?? GLOBAL_BRANCH_ID;
-    if (isMultiBranch(session) && body?.branchId) {
+    if (isMultiBranch(session)) {
+      if (!body?.branchId)
+        return NextResponse.json({ error: "Selecciona una sucursal destino" }, { status: 400 });
       const allowed =
         session.role !== "superadmin" ||
         (

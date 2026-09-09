@@ -10,14 +10,16 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireAdmin();
 
-    const cargos = await getCargos(session.branchId);
-    const departamentos = await getDepartamentos(session.branchId);
-
     const branches = await prisma.branch.findMany({
       where: { ...companyWhere(session) },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     });
+
+    // Catálogos de UNA sucursal (sin heredar de otras sucursales/empresas).
+    const targetBranchId = session.branchId || branches[0]?.id || null;
+    const cargos = await getCargos(targetBranchId);
+    const departamentos = await getDepartamentos(targetBranchId);
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Hoja1");

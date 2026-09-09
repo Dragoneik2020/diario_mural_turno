@@ -47,8 +47,12 @@ export async function getShiftTypeLabels(
   }
 }
 
+/** Lista de cargos PROPIA de la sucursal (sin heredar de otras sucursales/empresas). */
 export async function getCargos(branchId?: string | null): Promise<string[]> {
-  const row = await getSetting("cargos", branchId);
+  if (!branchId) return [...DEFAULT_CARGOS];
+  const row = await prisma.setting.findUnique({
+    where: { branchId_key: { branchId, key: "cargos" } },
+  });
   if (!row) return [...DEFAULT_CARGOS];
   try {
     const parsed = JSON.parse(row.value);
@@ -61,8 +65,12 @@ export async function getCargos(branchId?: string | null): Promise<string[]> {
   }
 }
 
+/** Lista de departamentos PROPIA de la sucursal (sin heredar de otras sucursales/empresas). */
 export async function getDepartamentos(branchId?: string | null): Promise<string[]> {
-  const row = await getSetting("departamentos", branchId);
+  if (!branchId) return [...DEFAULT_DEPARTAMENTOS];
+  const row = await prisma.setting.findUnique({
+    where: { branchId_key: { branchId, key: "departamentos" } },
+  });
   if (!row) return [...DEFAULT_DEPARTAMENTOS];
   try {
     const parsed = JSON.parse(row.value);
