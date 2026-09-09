@@ -287,10 +287,12 @@ async function main() {
   }
 
   // Empresa demo "Rincon-Z" dueña de las sucursales existentes.
+  // Solo se crea si no existe: NUNCA se sobrescribe jamás el nombre/estado/plan
+  // (el admin edita la empresa desde /admin/empresas y un redeploy NO debe revertir eso).
   const empresaPlan = await prisma.plan.findUnique({ where: { code: "empresa" } });
   await prisma.company.upsert({
     where: { id: RINCONZ_COMPANY_ID },
-    update: { name: nom("Rincon-Z"), status: "activa", planId: empresaPlan?.id ?? null },
+    update: {},
     create: {
       id: RINCONZ_COMPANY_ID,
       name: nom("Rincon-Z"),
