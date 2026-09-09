@@ -41,15 +41,15 @@ export async function GET(req: NextRequest) {
     const widths = [14, 26, 14, 10, 10, 12, 20, 30];
     widths.forEach((w, i) => (ws.getColumn(i + 1).width = widths[i]));
 
-// Filas de ejemplo (elemento 0 va a la columna A)
+// Filas de ejemplo (row.values es 1-indexado: el primer elemento va a la columna A).
     const rut1 = workers[0]?.rut ?? "17969468-9";
     const name1 = workers[0]?.name ?? "Nombre Apellido";
     const rut2 = workers[1]?.rut ?? "18986334-K";
     const name2 = workers[1]?.name ?? "Nombre Apellido";
-    // [null de ExcelJS, A, B, C, D, E, F, G, H]
-    ws.getRow(4).values = ["", rut1, name1, "01-01-2026", "08:00", "16:00", "manana", "", ""];
-    ws.getRow(5).values = ["", rut2, name2, "01-01-2026", "20:00", "04:00", "noche", "", ""];
-    ws.getRow(6).values = ["", "", "", "", "", "", "", "", ""];
+    // [A, B, C, D, E, F, G, H]
+    ws.getRow(4).values = [rut1, name1, "01-01-2026", "08:00", "16:00", "manana", "", ""];
+    ws.getRow(5).values = [rut2, name2, "01-01-2026", "20:00", "04:00", "noche", "", ""];
+    ws.getRow(6).values = ["", "", "", "", "", "", "", ""];
 
     // Hoja oculta con el catálogo de trabajadores
     const cat = wb.addWorksheet("Catalogos");
