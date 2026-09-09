@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, companyWhere } from "@/lib/session";
-import { getCargos } from "@/lib/settings";
+import { getCargos, getDepartamentos } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const session = await requireAdmin();
 
     const cargos = await getCargos(session.branchId);
+    const departamentos = await getDepartamentos(session.branchId);
 
     const branches = await prisma.branch.findMany({
       where: { ...companyWhere(session) },
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
       "correo electronico",
       "Sucursal",
       "Cargo",
+      "Departamento",
+      "Rol",
       "Clave de acceso",
     ];
     headers.forEach((h, i) => {
@@ -43,50 +46,66 @@ export async function GET(req: NextRequest) {
       cell.font = { bold: true };
     });
 
-    const widths = [14, 16, 16, 16, 14, 26, 20, 18, 16];
+    const widths = [14, 16, 16, 16, 14, 26, 20, 18, 16, 12, 14];
     widths.forEach((w, i) => (ws.getColumn(i + 1).width = widths[i]));
 
-    // Filas de ejemplo
+    // Filas de ejemplo (las asignaciones a row.values son 0-indexadas:
+    // el elemento 0 va a la columna A).
     const firstBranch = branches[0]?.name ?? "";
+    const cargo1 = cargos[0] || "";
+    const cargo2 = cargos[1] || cargo1;
+    const dep1 = departamentos[0] || "";
+    const dep2 = departamentos[1] || dep1;
     ws.getRow(4).values = [
-      "",
-      "12345678-5",
+      "17969468-9",
       "Lucía",
       "Pérez",
       "Soto",
       "+56 9 1234 5678",
       "lucia@demo.com",
       firstBranch,
-      cargos[0] || "",
+      cargo1,
+      dep1,
+      "Trabajador",
       "pass123",
     ];
     ws.getRow(5).values = [
-      "",
-      "98765432-5",
+      "18986334-K",
       "Pedro",
       "Sánchez",
       "Muñoz",
       "",
       "pedro@demo.com",
       firstBranch,
-      cargos[1] || "",
+      cargo2,
+      dep2,
+      "Trabajador",
       "pass123",
     ];
-    ws.getRow(6).values = ["", "", "", "", "", "", "", "", "", ""];
+    ws.getRow(6).values = ["", "", "", "", "", "", "", "", "", "", ""];
 
-    // Hoja oculta con catálogos (sucursales y cargos)
+    // Hoja oculta con catálogos (sucursales, cargos y departamentos)
     const cat = wb.addWorksheet("Catalogos");
     cat.state = "hidden";
     branches.forEach((b, i) => (cat.getCell(`A${i + 2}`).value = b.name));
     cargos.forEach((v, i) => (cat.getCell(`B${i + 2}`).value = v));
+    departamentos.forEach((v, i) => (cat.getCell(`C${i + 2}`).value = v));
     const aLast = Math.max(branches.length, 1);
     const bLast = Math.max(cargos.length, 1);
+    const cLast = Math.max(departamentos.length, 1);
     const dvSuc = `'Catalogos'!$A$2:$A$${aLast + 1}`;
     const dvCargo = `'Catalogos'!$B$2:$B$${bLast + 1}`;
+    const dvDep = `'Catalogos'!$C$2:$C$${cLast + 1}`;
 
     for (let r = 4; r <= 500; r++) {
       ws.getCell(`G${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvSuc] };
       ws.getCell(`H${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvCargo] };
+      ws.getCell(`I${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [dvDep] };
+      ws.getCell(`J${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"Trabajador,Admin"'],
+      };
     }
 
     const buf = await wb.xlsx.writeBuffer();

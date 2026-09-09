@@ -227,8 +227,10 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
 
             <p className="text-sm text-slate-500 mb-2">
               Usa la planilla <b>Planilla_trabajadores_ejemplo.xlsx</b> (o CSV): columnas{" "}
-              <b>RUT, Nombre, Apellido Paterno, Apellido Materno, telefono, correo electronico, Sucursal, Cargo, Clave de acceso</b>.
-              La columna Sucursal asigna cada trabajador a su sucursal por nombre. El <b>RUT</b> es el usuario de acceso a la app; el teléfono es informativo.
+              <b>RUT, Nombre, Apellido Paterno, Apellido Materno, telefono, correo electronico, Sucursal, Cargo, Departamento, Rol, Clave de acceso</b>.
+              El <b>RUT</b> es el usuario de acceso a la app. El teléfono es informativo. Si el email ya existe,
+              se actualizan RUT/Cargo/Sucursal. <b>Departamento, Rol y Clave</b> son opcionales (Rol: Trabajador o Admin;
+              sin clave se usa la contraseña por defecto).
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -285,6 +287,7 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                       <th className="py-1 px-2">Email</th>
                       <th className="py-1 px-2">Sucursal</th>
                       <th className="py-1 px-2">Cargo</th>
+                      <th className="py-1 px-2">Depto</th>
                       <th className="py-1 px-2">Rol</th>
                       <th className="py-1 px-2">Estado</th>
                     </tr>
@@ -297,7 +300,8 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
                         <td className="py-1 px-2">{p.email}</td>
                         <td className="py-1 px-2">{p.sucursal || "—"}</td>
                         <td className="py-1 px-2">{p.cargo || "—"}</td>
-                        <td className="py-1 px-2">{p.role}</td>
+                        <td className="py-1 px-2">{p.department || "—"}</td>
+                        <td className="py-1 px-2">{p.role === "worker" ? "Trabajador" : p.role === "admin" ? "Admin" : p.role}</td>
                         <td className="py-1 px-2">
                           {p.error ? (
                             <span className="text-red-600 text-xs">{p.error}</span>
