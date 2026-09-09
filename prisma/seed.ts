@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { nom, nomEq } from "../src/lib/normalize";
 
 const prisma = new PrismaClient();
 const GLOBAL = "global";
@@ -9,52 +10,39 @@ const RINCONZ_COMPANY_ID = "company-rincon-z";
 const DEFAULT_PLANS = [
   {
     code: "basico",
-    name: "Básico",
-    description: "Para una sucursal que recién organiza sus turnos.",
+    name: nom("Básico"),
+    description: nom("Para una sucursal que recién organiza sus turnos."),
     priceMensual: 19990,
     priceAnual: 199900,
     maxBranches: 1,
     maxWorkers: 30,
-    features: JSON.stringify([
-      "1 sucursal",
-      "Hasta 30 trabajadores",
-      "Calendario de turnos",
-      "Mural de avisos",
-      "Encuestas y votaciones",
-    ]),
+    features: JSON.stringify(
+      ["1 sucursal", "Hasta 30 trabajadores", "Calendario de turnos", "Mural de avisos", "Encuestas y votaciones"].map(nom)
+    ),
   },
   {
     code: "pro",
-    name: "Pro",
-    description: "Para equipos que crecen y necesitan varias sucursales.",
+    name: nom("Pro"),
+    description: nom("Para equipos que crecen y necesitan varias sucursales."),
     priceMensual: 39990,
     priceAnual: 399900,
     maxBranches: 5,
     maxWorkers: 150,
-    features: JSON.stringify([
-      "Hasta 5 sucursales",
-      "Hasta 150 trabajadores",
-      "Todo lo del Básico",
-      "Filtro por cargo y departamento",
-      "Exportación a Excel",
-      "Notificaciones por correo y push",
-    ]),
+    features: JSON.stringify(
+      ["Hasta 5 sucursales", "Hasta 150 trabajadores", "Todo lo del Básico", "Filtro por cargo y departamento", "Exportación a Excel", "Notificaciones por correo y push"].map(nom)
+    ),
   },
   {
     code: "empresa",
-    name: "Empresa",
-    description: "Para organizaciones grandes con muchas sucursales.",
+    name: nom("Empresa"),
+    description: nom("Para organizaciones grandes con muchas sucursales."),
     priceMensual: 79990,
     priceAnual: 799900,
     maxBranches: 9999,
     maxWorkers: 99999,
-    features: JSON.stringify([
-      "Sucursales y trabajadores ilimitados",
-      "Todo lo del Pro",
-      "Roles y permisos avanzados",
-      "Soporte prioritario",
-      "Notificaciones por correo y push",
-    ]),
+    features: JSON.stringify(
+      ["Sucursales y trabajadores ilimitados", "Todo lo del Pro", "Roles y permisos avanzados", "Soporte prioritario", "Notificaciones por correo y push"].map(nom)
+    ),
   },
 ];
 
@@ -64,109 +52,109 @@ async function main() {
 
   const central = await prisma.branch.upsert({
     where: { id: "branch-central" },
-    update: { name: "Sucursal Central" },
-    create: { id: "branch-central", name: "Sucursal Central" },
+    update: { name: nom("Sucursal Central") },
+    create: { id: "branch-central", name: nom("Sucursal Central") },
   });
 
   const norte = await prisma.branch.upsert({
     where: { id: "branch-norte" },
-    update: { name: "Sucursal Norte" },
-    create: { id: "branch-norte", name: "Sucursal Norte" },
+    update: { name: nom("Sucursal Norte") },
+    create: { id: "branch-norte", name: nom("Sucursal Norte") },
   });
 
   const dios = await prisma.user.upsert({
-    where: { email: "admin@demo.com" },
-    update: { role: "dios", branchId: null, name: "Cuenta DIOS", rut: "12345678-5" },
+    where: { rut: "12345678-5" },
+    update: { role: "dios", branchId: null, name: nom("Cuenta DIOS"), email: nom("admin@demo.com") },
     create: {
-      name: "Cuenta DIOS",
-      email: "admin@demo.com",
+      name: nom("Cuenta DIOS"),
+      email: nom("admin@demo.com"),
       rut: "12345678-5",
       password: adminPassword,
       role: "dios",
-      department: "Dirección",
+      department: nom("Dirección"),
     },
   });
 
   const superRincon = await prisma.user.upsert({
-    where: { email: "super@demo.com" },
-    update: { role: "superadmin", branchId: central.id, rut: "66666666-6" },
+    where: { rut: "66666666-6" },
+    update: { role: "superadmin", branchId: central.id, name: nom("Super Admin Rincon-Z"), email: nom("super@demo.com") },
     create: {
-      name: "Super Admin Rincon-Z",
-      email: "super@demo.com",
+      name: nom("Super Admin Rincon-Z"),
+      email: nom("super@demo.com"),
       rut: "66666666-6",
       password: adminPassword,
       role: "superadmin",
-      department: "Dirección",
+      department: nom("Dirección"),
       branchId: central.id,
     },
   });
 
   const adminCentral = await prisma.user.upsert({
-    where: { email: "central@demo.com" },
-    update: { role: "admin", branchId: central.id, rut: "55555555-5" },
+    where: { rut: "55555555-5" },
+    update: { role: "admin", branchId: central.id, name: nom("Admin Central"), email: nom("central@demo.com") },
     create: {
-      name: "Admin Central",
-      email: "central@demo.com",
+      name: nom("Admin Central"),
+      email: nom("central@demo.com"),
       rut: "55555555-5",
       password: adminPassword,
       role: "admin",
-      department: "Dirección",
+      department: nom("Dirección"),
       branchId: central.id,
     },
   });
 
   const adminNorte = await prisma.user.upsert({
-    where: { email: "norte@demo.com" },
-    update: { role: "admin", branchId: norte.id, rut: "44444444-4" },
+    where: { rut: "44444444-4" },
+    update: { role: "admin", branchId: norte.id, name: nom("Admin Norte"), email: nom("norte@demo.com") },
     create: {
-      name: "Admin Norte",
-      email: "norte@demo.com",
+      name: nom("Admin Norte"),
+      email: nom("norte@demo.com"),
       rut: "44444444-4",
       password: adminPassword,
       role: "admin",
-      department: "Dirección",
+      department: nom("Dirección"),
       branchId: norte.id,
     },
   });
 
   const workers = [
-    { name: "Ana López", email: "ana@demo.com", rut: "11111111-1", department: "Ventas", cargo: "Vendedor", branchId: central.id },
-    { name: "Carlos Ruiz", email: "carlos@demo.com", rut: "22222222-2", department: "Almacén", cargo: "Técnico", branchId: central.id },
-    { name: "María Gómez", email: "maria@demo.com", rut: "33333333-3", department: "Atención al cliente", cargo: "Auxiliar", branchId: central.id },
-    { name: "Javier Martín", email: "javier@demo.com", rut: "77777777-7", department: "Ventas", cargo: "Vendedor", branchId: central.id },
-    { name: "Lucía Pérez", email: "lucia@demo.com", rut: "88888888-8", department: "Atención al cliente", cargo: "Auxiliar", branchId: norte.id },
-    { name: "Pedro Sánchez", email: "pedro@demo.com", rut: "99999999-9", department: "Almacén", cargo: "Técnico", branchId: norte.id },
+    { name: nom("Ana López"), email: nom("ana@demo.com"), rut: "11111111-1", department: nom("Ventas"), cargo: nom("Vendedor"), branchId: central.id },
+    { name: nom("Carlos Ruiz"), email: nom("carlos@demo.com"), rut: "22222222-2", department: nom("Almacén"), cargo: nom("Técnico"), branchId: central.id },
+    { name: nom("María Gómez"), email: nom("maria@demo.com"), rut: "33333333-3", department: nom("Atención al cliente"), cargo: nom("Auxiliar"), branchId: central.id },
+    { name: nom("Javier Martín"), email: nom("javier@demo.com"), rut: "77777777-7", department: nom("Ventas"), cargo: nom("Vendedor"), branchId: central.id },
+    { name: nom("Lucía Pérez"), email: nom("lucia@demo.com"), rut: "88888888-8", department: nom("Atención al cliente"), cargo: nom("Auxiliar"), branchId: norte.id },
+    { name: nom("Pedro Sánchez"), email: nom("pedro@demo.com"), rut: "99999999-9", department: nom("Almacén"), cargo: nom("Técnico"), branchId: norte.id },
   ];
 
   const announcementExamples = [
     {
-      content:
-        "📢 Recordatorio: la nueva rotación de turnos entra en vigor el lunes. Revisad el calendario y avisad si hay conflictos.",
+      content: nom(
+        "📢 Recordatorio: la nueva rotación de turnos entra en vigor el lunes. Revisad el calendario y avisad si hay conflictos."
+      ),
       pinned: true,
     },
     {
-      content:
-        "☕ La máquina de café del almacén está arreglada. ¡Gracias por vuestra paciencia!",
+      content: nom("☕ La máquina de café del almacén está arreglada. ¡Gracias por vuestra paciencia!"),
       pinned: false,
     },
   ];
 
   const pollExamples = [
     {
-      question: "¿Qué día preferís para la próxima formación de seguridad?",
-      options: ["Lunes", "Miércoles", "Viernes"],
+      question: nom("¿Qué día preferís para la próxima formación de seguridad?"),
+      options: ["Lunes", "Miércoles", "Viernes"].map(nom),
     },
     {
-      question: "¿Estáis de acuerdo con ampliar el descanso a 30 minutos?",
-      options: ["Sí, totalmente", "No, está bien así"],
+      question: nom("¿Estáis de acuerdo con ampliar el descanso a 30 minutos?"),
+      options: ["Sí, totalmente", "No, está bien así"].map(nom),
     },
   ];
 
   if (SEED_DEMO) {
     for (const w of workers) {
       await prisma.user.upsert({
-        where: { email: w.email },
-        update: { role: "worker", branchId: w.branchId, rut: w.rut },
+        where: { rut: w.rut },
+        update: { role: "worker", branchId: w.branchId, name: w.name, email: w.email, department: w.department, cargo: w.cargo },
         create: {
           name: w.name,
           email: w.email,
@@ -256,9 +244,9 @@ async function main() {
   });
 
   // Asigna el RUT 17.969.468-9 a la cuenta DIOS real (juannretamal@hotmail.com) si existe.
-  const diosReal = await prisma.user.findUnique({
-    where: { email: "juannretamal@hotmail.com" },
-  });
+  const diosReal = (await prisma.user.findMany({ select: { id: true, email: true } })).find((u) =>
+    nomEq(u.email, "juannretamal@hotmail.com")
+  );
   if (diosReal) {
     const rutUsed = await prisma.user.findUnique({ where: { rut: "17969468-9" } });
     if (!rutUsed || rutUsed.id === diosReal.id) {
@@ -302,10 +290,10 @@ async function main() {
   const empresaPlan = await prisma.plan.findUnique({ where: { code: "empresa" } });
   await prisma.company.upsert({
     where: { id: RINCONZ_COMPANY_ID },
-    update: { name: "Rincon-Z", status: "activa", planId: empresaPlan?.id ?? null },
+    update: { name: nom("Rincon-Z"), status: "activa", planId: empresaPlan?.id ?? null },
     create: {
       id: RINCONZ_COMPANY_ID,
-      name: "Rincon-Z",
+      name: nom("Rincon-Z"),
       slug: "rincon-z",
       status: "activa",
       planId: empresaPlan?.id ?? null,
@@ -337,11 +325,11 @@ async function main() {
       branchId: GLOBAL,
       key: "shiftTypeLabels",
       value: JSON.stringify({
-        manana: "Mañana",
-        tarde: "Tarde",
-        noche: "Noche",
-        completo: "Completo",
-        otro: "Otro",
+        manana: "MANANA",
+        tarde: "TARDE",
+        noche: "NOCHE",
+        completo: "COMPLETO",
+        otro: "OTRO",
       }),
     },
   });
@@ -352,7 +340,7 @@ async function main() {
     create: {
       branchId: GLOBAL,
       key: "cargos",
-      value: JSON.stringify(["Enfermero", "Médico", "Técnico", "Auxiliar", "Administrativo"]),
+      value: JSON.stringify(["Enfermero", "Médico", "Técnico", "Auxiliar", "Administrativo"].map(nom)),
     },
   });
 
@@ -393,13 +381,13 @@ async function main() {
   });
 
   console.log("Seed completado.");
-  console.log("Cuenta DIOS: admin@demo.com / admin123");
-  console.log("Super Admin (empresa): super@demo.com / admin123");
-  console.log("Admin Central: central@demo.com / admin123");
-  console.log("Admin Norte: norte@demo.com / admin123");
-  console.log("Empresa demo: Rincon-Z (plan Empresa, dueña de las sucursales legacy)");
+  console.log("Cuenta DIOS: ADMIN@DEMO.COM / admin123");
+  console.log("Super Admin (empresa): SUPER@DEMO.COM / admin123");
+  console.log("Admin Central: CENTRAL@DEMO.COM / admin123");
+  console.log("Admin Norte: NORTE@DEMO.COM / admin123");
+  console.log("Empresa demo: RINCON-Z (plan Empresa, dueña de las sucursales legacy)");
   if (SEED_DEMO)
-    console.log("Trabajadores demo: ana@demo.com, carlos@demo.com, maria@demo.com, javier@demo.com, lucia@demo.com, pedro@demo.com / trabajador123");
+    console.log("Trabajadores demo: ANA@DEMO.COM, CARLOS@DEMO.COM, MARIA@DEMO.COM, JAVIER@DEMO.COM, LUCIA@DEMO.COM, PEDRO@DEMO.COM / trabajador123");
 }
 
 main()
