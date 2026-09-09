@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, ChevronDown, Clock, DoorOpen, Pencil, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, ChevronDown, Clock, DoorOpen, Pencil, Plus, XCircle } from "lucide-react";
 
 interface PlanLite { id: string; code: string; name: string; priceMensual: number; }
 interface OrderLite { id: string; status: string; amount: number; period: string; paidAt: string | null; createdAt: string; plan: { name: string }; }
@@ -37,6 +37,12 @@ export default function CompaniesManager() {
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createPlan, setCreatePlan] = useState("");
+  const [createStatus, setCreateStatus] = useState("activa");
+  const [creating, setCreating] = useState(false);
+
   async function load() {
     setLoading(true);
     try {
@@ -71,6 +77,32 @@ export default function CompaniesManager() {
       setError(d.error || "Error al guardar");
       return;
     }
+    await load();
+  }
+
+  async function createCompany() {
+    const name = createName.trim();
+    if (name.length < 2) {
+      setError("Ingresa un nombre de al menos 2 caracteres.");
+      return;
+    }
+    setCreating(true);
+    setError("");
+    const res = await fetch("/api/companies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, planId: createPlan || undefined, status: createStatus }),
+    });
+    setCreating(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error || "Error al crear la empresa");
+      return;
+    }
+    setShowCreate(false);
+    setCreateName("");
+    setCreatePlan("");
+    setCreateStatus("activa");
     await load();
   }
 
@@ -128,6 +160,82 @@ export default function CompaniesManager() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-400">
+          Gestiona las empresas del sistema. Al crear una, se genera su primera
+          sucursal y podrás acceder en modo empresa desde la cuenta DIOS.
+        </p>
+        <button
+          onClick={() => setShowCreate((v) => !v)}
+          className="rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-xs font-semibold text-brand-200 transition hover:bg-brand-500/20 hover:text-white"
+        >
+          <Plus className="mr-1.5 inline h-4 w-4" />
+          {showCreate ? "Cancelar" : "Crear empresa"}
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="card space-y-3.5">
+          <div>
+            <h4 className="font-display text-sm font-semibold text-white">
+              Nueva empresa
+            </h4>
+            <p className="text-xs text-slate-500">
+              Se creará la sucursal “Sucursal Principal” automáticamente.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-1">
+              <label className="label">Nombre de la empresa</label>
+              <input
+                className="input"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="Ej: Club Dreams"
+                autoFocus
+              />
+            </div>
+            <select
+              className="input text-xs"
+              value={createPlan}
+              onChange={(e) => setCreatePlan(e.target.value)}
+            >
+              <option value="">Sin plan</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {fmt(p.priceMensual)}/mes
+                </option>
+              ))}
+            </select>
+            <select
+              className="input text-xs"
+              value={createStatus}
+              onChange={(e) => setCreateStatus(e.target.value)}
+            >
+              <option value="activa">Activa</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowCreate(false)}
+              disabled={creating}
+              className="btn-ghost px-4 text-xs"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={createCompany}
+              disabled={creating}
+              className="rounded-full bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-glow transition hover:brightness-110 disabled:opacity-50"
+            >
+              {creating ? "Creando…" : "Crear empresa"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-3.5 py-2.5 text-xs text-[#fca5a5]">
           {error}
