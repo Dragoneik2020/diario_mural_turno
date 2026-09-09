@@ -57,25 +57,22 @@ export async function PATCH(
     }
 
     const data: any = {};
-    const baseDate = parsed.date || shift.date.toISOString().slice(0, 10);
     const timeOf = (d: Date) => d.toTimeString().slice(0, 5);
-    if (parsed.start) data.start = combine(baseDate, parsed.start);
-    if (parsed.end) data.end = combine(baseDate, parsed.end);
-    if (parsed.date) {
-      const tStart = parsed.start || timeOf(shift.start);
-      const tEnd = parsed.end || timeOf(shift.end);
-      data.date = combine(baseDate, tStart);
-      if (!parsed.start) data.start = combine(baseDate, tStart);
-      if (!parsed.end) data.end = combine(baseDate, tEnd);
+    if (parsed.start !== undefined || parsed.end !== undefined || parsed.date !== undefined) {
+      const day = (parsed.date || shift.date.toISOString().slice(0, 10)).slice(0, 10);
+      const tStart = parsed.start !== undefined ? parsed.start : timeOf(shift.start);
+      const tEnd = parsed.end !== undefined ? parsed.end : timeOf(shift.end);
+      const s = combine(day, tStart);
+      let e = combine(day, tEnd);
+      if (e <= s) e = new Date(e.getTime() + 86400000); // turno nocturno: cruza al día siguiente
+      data.start = s;
+      data.end = e;
+      data.date = s;
     }
     if (parsed.type) data.type = parsed.type;
     if (parsed.name !== undefined) data.name = parsed.name ? nom(parsed.name) : "";
     if (parsed.notes !== undefined) data.notes = parsed.notes ? txt(parsed.notes) : "";
     if (parsed.status) data.status = parsed.status;
-
-    if (data.start && data.end && data.end <= data.start) {
-      return NextResponse.json({ error: "Horas inválidas" }, { status: 400 });
-    }
 
     const updated = await prisma.shift.update({
       where: { id: params.id },

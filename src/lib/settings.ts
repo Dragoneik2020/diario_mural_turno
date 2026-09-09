@@ -1,7 +1,12 @@
 import { prisma } from "./prisma";
-import { DEFAULT_SHIFT_TYPE_LABELS, SHIFT_TYPE_KEYS } from "./shiftTypes";
+import {
+  DEFAULT_SHIFT_TYPE_LABELS,
+  DEFAULT_SHIFT_TYPE_SCHEDULES,
+  SHIFT_TYPE_KEYS,
+  ShiftTypeSchedule,
+} from "./shiftTypes";
 
-export { DEFAULT_SHIFT_TYPE_LABELS, SHIFT_TYPE_KEYS };
+export { DEFAULT_SHIFT_TYPE_LABELS, DEFAULT_SHIFT_TYPE_SCHEDULES, SHIFT_TYPE_KEYS };
 
 /** Sucursal ficticia donde viven los ajustes compartidos por toda la app (SMTP, cron, defaults). */
 export const GLOBAL_BRANCH_ID = "global";
@@ -45,6 +50,27 @@ export async function getShiftTypeLabels(
   } catch {
     return { ...DEFAULT_SHIFT_TYPE_LABELS };
   }
+}
+
+/** Horario por defecto de cada tipo de turno (heredable por nivel: sucursal -> global). */
+export async function getShiftTypeSchedules(
+  branchId?: string | null
+): Promise<Record<string, ShiftTypeSchedule>> {
+  const row = await getSetting("shiftTypeSchedules", branchId);
+  const out: Record<string, ShiftTypeSchedule> = { ...DEFAULT_SHIFT_TYPE_SCHEDULES };
+  if (!row) return out;
+  try {
+    const parsed = JSON.parse(row.value);
+    for (const k of SHIFT_TYPE_KEYS) {
+      const v = parsed?.[k];
+      if (v && typeof v === "object" && v.start && v.end) {
+        out[k] = { start: String(v.start), end: String(v.end) };
+      }
+    }
+  } catch {
+    /* usa defaults */
+  }
+  return out;
 }
 
 /** Lista de cargos PROPIA de la sucursal (sin heredar de otras sucursales/empresas). */

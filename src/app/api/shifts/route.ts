@@ -95,12 +95,10 @@ export async function POST(req: NextRequest) {
     }
 
     const start = combine(parsed.date, parsed.start);
-    const end = combine(parsed.date, parsed.end);
+    let end = combine(parsed.date, parsed.end);
     if (end <= start) {
-      return NextResponse.json(
-        { error: "La hora de fin debe ser posterior a la de inicio" },
-        { status: 400 }
-      );
+      // turno nocturno: el fin cruza al día siguiente
+      end = new Date(end.getTime() + 86400000);
     }
 
     const shift = await prisma.shift.create({

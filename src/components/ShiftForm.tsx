@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useShiftTypeLabels } from "@/components/ShiftTypeLabelsProvider";
+import {
+  useShiftTypeLabels,
+  useShiftTypeSchedules,
+} from "@/components/ShiftTypeLabelsProvider";
 import { SHIFT_TYPE_KEYS } from "@/lib/shiftTypes";
 
 export interface UserOption {
@@ -45,6 +48,7 @@ export default function ShiftForm({
 }) {
   const router = useRouter();
   const { t } = useShiftTypeLabels();
+  const { sched } = useShiftTypeSchedules();
   const [userId, setUserId] = useState(defaultUserId || users?.[0]?.id || "");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [start, setStart] = useState("09:00");
@@ -68,6 +72,15 @@ export default function ShiftForm({
       setStatus(editing.status);
     }
   }, [editing]);
+
+  function changeType(k: string) {
+    setType(k);
+    const s = sched(k);
+    if (s) {
+      setStart(s.start);
+      setEnd(s.end);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,7 +147,7 @@ export default function ShiftForm({
         </div>
         <div>
           <label className="label">Tipo</label>
-          <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+          <select className="input" value={type} onChange={(e) => changeType(e.target.value)}>
             {SHIFT_TYPE_KEYS.map((k) => (
               <option key={k} value={k}>{t(k)}</option>
             ))}

@@ -337,6 +337,22 @@ async function main() {
   });
 
   await prisma.setting.upsert({
+    where: { branchId_key: { branchId: GLOBAL, key: "shiftTypeSchedules" } },
+    update: {},
+    create: {
+      branchId: GLOBAL,
+      key: "shiftTypeSchedules",
+      value: JSON.stringify({
+        manana: { start: "08:00", end: "14:00" },
+        tarde: { start: "14:00", end: "20:00" },
+        noche: { start: "20:00", end: "04:00" },
+        completo: { start: "09:00", end: "17:00" },
+        otro: { start: "09:00", end: "17:00" },
+      }),
+    },
+  });
+
+  await prisma.setting.upsert({
     where: { branchId_key: { branchId: GLOBAL, key: "cargos" } },
     update: {},
     create: {
