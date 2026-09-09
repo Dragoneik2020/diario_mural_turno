@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { isDios } from "@/lib/session";
 import NavBar from "@/components/NavBar";
@@ -15,6 +16,11 @@ export default async function ReportesPage() {
     <div className="min-h-screen">
       <NavBar name={session.name} role={session.role} branchName={session.branchName} />
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 rise">
+        <div className="flex justify-end">
+          <Link href="/admin" className="btn-ghost px-4 py-2 text-sm">
+            ← Volver atrás
+          </Link>
+        </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Reportes de turnos</h1>
           <p className="text-slate-500">
