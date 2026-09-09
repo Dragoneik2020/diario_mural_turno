@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCompanyManager, companyWhere } from "@/lib/session";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function PATCH(
     const parsed = updateSchema.parse(body);
     const branch = await prisma.branch.updateMany({
       where: { id: params.id, ...companyWhere(session) },
-      data: { name: parsed.name.trim() },
+      data: { name: nom(parsed.name) },
     });
     if (branch.count === 0)
       return NextResponse.json({ error: "Sucursal no encontrada" }, { status: 404 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser, canManageRole, branchWhere } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
+import { nom, txt } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +69,8 @@ export async function PATCH(
       if (!parsed.end) data.end = combine(baseDate, tEnd);
     }
     if (parsed.type) data.type = parsed.type;
-    if (parsed.name !== undefined) data.name = parsed.name;
-    if (parsed.notes !== undefined) data.notes = parsed.notes;
+    if (parsed.name !== undefined) data.name = parsed.name ? nom(parsed.name) : "";
+    if (parsed.notes !== undefined) data.notes = parsed.notes ? txt(parsed.notes) : "";
     if (parsed.status) data.status = parsed.status;
 
     if (data.start && data.end && data.end <= data.start) {

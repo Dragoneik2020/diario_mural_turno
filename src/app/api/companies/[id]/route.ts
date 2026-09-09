@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireDios } from "@/lib/session";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function PATCH(
       data: {
         status: parsed.status,
         planId: parsed.planId !== undefined ? parsed.planId : existing.planId,
-        ...(parsed.name !== undefined ? { name: parsed.name } : {}),
+        ...(parsed.name !== undefined ? { name: nom(parsed.name) } : {}),
       },
     });
     return NextResponse.json({ company });

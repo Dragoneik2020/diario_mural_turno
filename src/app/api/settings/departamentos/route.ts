@@ -6,6 +6,7 @@ import {
   GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
 import { requireUser, requireAdmin, branchWhere, isMultiBranch } from "@/lib/session";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,7 @@ export async function PATCH(req: NextRequest) {
         ? body.departamentos
         : body;
     const departamentos: string[] = Array.isArray(input)
-      ? input.map((d: unknown) => String(d).trim()).filter((d: string) => d.length > 0)
+      ? [...new Set(input.map((d: unknown) => nom(String(d))).filter((d: string) => d.length > 0))]
       : [...DEFAULT_DEPARTAMENTOS];
 
     // Un admin de sucursal edita la suya; superadmin/dios DEBEN elegir la

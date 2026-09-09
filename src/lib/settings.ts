@@ -7,19 +7,19 @@ export { DEFAULT_SHIFT_TYPE_LABELS, SHIFT_TYPE_KEYS };
 export const GLOBAL_BRANCH_ID = "global";
 
 export const DEFAULT_CARGOS: string[] = [
-  "Enfermero",
-  "Médico",
-  "Técnico",
-  "Auxiliar",
-  "Administrativo",
+  "ENFERMERO",
+  "MEDICO",
+  "TECNICO",
+  "AUXILIAR",
+  "ADMINISTRATIVO",
 ];
 
 export const DEFAULT_DEPARTAMENTOS: string[] = [
-  "Medicina",
-  "Urgencias",
-  "Pabellón",
+  "MEDICINA",
+  "URGENCIAS",
+  "PABELLON",
   "UCI",
-  "Pediatría",
+  "PEDIATRIA",
 ];
 
 async function getSetting(key: string, branchId?: string | null) {

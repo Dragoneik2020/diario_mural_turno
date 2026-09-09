@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireCompanyManager, isMultiBranch, companyWhere, writeBranchId, isDios, diosCompanyScope } from "@/lib/session";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     const branch = await prisma.branch.create({
       data: {
-        name: parsed.name.trim(),
+        name: nom(parsed.name),
         companyId,
       },
     });

@@ -416,11 +416,11 @@ export default function WorkersManager({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Nombre</label>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <input className="input uppercase" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             </div>
             <div>
               <label className="label">Email</label>
-              <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+              <input className="input uppercase" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
             <div>
               <label className="label">RUT (usuario de acceso)</label>

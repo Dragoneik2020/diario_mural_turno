@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isDios, branchWhere, writeBranchId, effectiveCompanyId } from "@/lib/session";
 import { notifyAccountCreated } from "@/lib/email";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -75,12 +76,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = userCreateSchema.parse(body);
 
+    // Todo texto se guarda en MAYÚSCULAS y sin acentos.
+    const name = nom(parsed.name);
+    const email = nom(parsed.email);
+    const department = parsed.department ? nom(parsed.department) : undefined;
+    const cargo = parsed.cargo ? nom(parsed.cargo) : undefined;
+
     // Solo DIOS puede crear cuentas de super administrador.
     const isDiosUser = isDios(session);
     if (parsed.role === "superadmin" && !isDiosUser)
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-    const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
+    const exists = await prisma.user.findUnique({ where: { email } });
     if (exists)
       return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
 
@@ -143,13 +150,13 @@ export async function POST(req: NextRequest) {
     const password = await bcrypt.hash(parsed.password, 10);
     const user = await prisma.user.create({
       data: {
-        name: parsed.name,
-        email: parsed.email,
+        name,
+        email,
         rut: rutNorm,
         password,
         role: parsed.role,
-        department: parsed.department,
-        cargo: parsed.cargo,
+        department,
+        cargo,
         telegramChatId: parsed.telegramChatId?.trim() || null,
         active: parsed.active,
         branchId,

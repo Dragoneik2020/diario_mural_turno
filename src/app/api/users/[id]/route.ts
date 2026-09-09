@@ -11,6 +11,7 @@ import {
   isMultiBranch,
   branchWhere,
 } from "@/lib/session";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,11 @@ export async function PATCH(
 
     const data: any = { ...parsed };
     if (parsed.password) data.password = await bcrypt.hash(parsed.password, 10);
+    // Todo texto se guarda en MAYÚSCULAS y sin acentos.
+    if (parsed.name) data.name = nom(parsed.name);
+    if (parsed.department) data.department = nom(parsed.department);
+    if (parsed.cargo) data.cargo = nom(parsed.cargo);
+    if (parsed.email) data.email = nom(parsed.email);
     if ("branchId" in parsed && isSuper)
       data.branchId = parsed.branchId ? parsed.branchId : null;
     if ("companyId" in parsed && isRoot)
@@ -111,7 +117,7 @@ export async function PATCH(
     }
 
     if (parsed.email) {
-      const exists = await prisma.user.findUnique({ where: { email: parsed.email } });
+      const exists = await prisma.user.findUnique({ where: { email: nom(parsed.email) } });
       if (exists && exists.id !== params.id)
         return NextResponse.json({ error: "El email ya está registrado" }, { status: 409 });
     }

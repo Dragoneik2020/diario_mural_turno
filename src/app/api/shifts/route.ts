@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser, canManageRole, branchWhere, isDios } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
+import { nom, txt } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -110,9 +111,9 @@ export async function POST(req: NextRequest) {
         start,
         end,
         type: parsed.type as string,
-        name: parsed.name,
+        name: parsed.name ? nom(parsed.name) : parsed.name,
         status: isManager && parsed.userId ? "asignado" : "confirmado",
-        notes: parsed.notes,
+        notes: parsed.notes ? txt(parsed.notes) : parsed.notes,
       },
       include: { user: { select: { id: true, name: true, department: true } } },
     });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireAdmin, isMultiBranch, branchWhere } from "@/lib/session";
 import { DEFAULT_CARGOS, getCargos, GLOBAL_BRANCH_ID } from "@/lib/settings";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const input = body && Array.isArray(body.cargos) ? body.cargos : body;
     const cargos: string[] = Array.isArray(input)
-      ? input.map((c: unknown) => String(c).trim()).filter((c: string) => c.length > 0)
+      ? [...new Set(input.map((c: unknown) => nom(String(c))).filter((c: string) => c.length > 0))]
       : [...DEFAULT_CARGOS];
 
     // Un admin de sucursal edita la suya; superadmin/dios DEBEN elegir la

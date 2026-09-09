@@ -7,6 +7,7 @@ import {
   getShiftTypeLabels,
   GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest) {
     const input = body && typeof body.labels === "object" ? body.labels : body;
     const labels: Record<string, string> = { ...DEFAULT_SHIFT_TYPE_LABELS };
     for (const k of SHIFT_TYPE_KEYS) {
-      if (input && typeof input[k] === "string" && input[k].trim()) labels[k] = input[k].trim();
+      if (input && typeof input[k] === "string" && input[k].trim()) labels[k] = nom(input[k]);
     }
     const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
     await prisma.setting.upsert({

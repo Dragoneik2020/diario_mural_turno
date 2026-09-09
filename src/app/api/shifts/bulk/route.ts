@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, canManageRole, branchWhere, isMultiBranch } from "@/lib/session";
 import { notifyShiftById } from "@/lib/email";
 import { normalizeRut } from "@/lib/rut";
+import { nom, txt } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -156,8 +157,8 @@ export async function POST(req: NextRequest) {
             start,
             end,
             type,
-            name: data.name?.trim() || null,
-            notes: data.notes?.trim() || null,
+            name: data.name ? nom(data.name) : null,
+            notes: data.notes ? txt(data.notes) : null,
             status,
           },
           select: { id: true },

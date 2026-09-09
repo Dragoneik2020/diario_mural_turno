@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeRut, RUT_FORMAT_ERROR } from "@/lib/rut";
 import { requireAdmin, isMultiBranch, writeBranchId, isDios } from "@/lib/session";
 import { notifyAccountCreated } from "@/lib/email";
+import { nom } from "@/lib/normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,12 @@ export async function POST(req: NextRequest) {
         errors.push({ email: raw?.email || "—", error: "Datos inválidos" });
         continue;
       }
-      const { name, email, role, department, cargo } = parsed.data;
+      const { name, email, role } = parsed.data;
+      // Todo texto se guarda en MAYÚSCULAS y sin acentos.
+      const nameNorm = nom(name);
+      const emailNorm = nom(email);
+      const department = parsed.data.department ? nom(parsed.data.department) : null;
+      const cargo = parsed.data.cargo ? nom(parsed.data.cargo) : null;
       const rutRaw = parsed.data.rut?.trim() || null;
       if (rutRaw && !normalizeRut(rutRaw)) {
         errors.push({ email, error: RUT_FORMAT_ERROR });
@@ -95,9 +101,9 @@ export async function POST(req: NextRequest) {
       // El RUT es la clave de la cuenta en la app: si la fila trae un RUT
       // ya registrado, esa es la cuenta a actualizar (aunque el email difiera);
       // si no, se usa el email para ubicar la cuenta y asignarle el RUT.
-      const exists = await prisma.user.findUnique({ where: { email } });
+      const exists = await prisma.user.findUnique({ where: { email: emailNorm } });
       let target:
-        | { id: string; email: string; rut: string | null; branchId: string | null; companyId: string | null }
+        | { id: string; email: string; rut: string | null; branchId: string | null; companyId: string | null; department: string | null; cargo: string | null }
         | null = null;
       if (rutNorm) {
         target = await prisma.user.findUnique({ where: { rut: rutNorm } });
@@ -107,17 +113,18 @@ export async function POST(req: NextRequest) {
       if (target) {
         const changes: Record<string, unknown> = {};
         if (rutNorm && target.rut !== rutNorm) changes.rut = rutNorm;
-        if (cargo) changes.cargo = cargo;
+        if (cargo && target.cargo !== cargo) changes.cargo = cargo;
+        if (department && target.department !== department) changes.department = department;
         const effBranchId = rowBranchId;
         if (effBranchId && target.branchId !== effBranchId) changes.branchId = effBranchId;
         if (rowCompanyId && target.companyId !== rowCompanyId) changes.companyId = rowCompanyId;
-        if (target.email !== email) {
-          const emailOwner = await prisma.user.findUnique({ where: { email } });
+        if (target.email !== emailNorm) {
+          const emailOwner = await prisma.user.findUnique({ where: { email: emailNorm } });
           if (emailOwner && emailOwner.id !== target.id) {
             errors.push({ email, error: "El email ya está registrado por otra cuenta" });
             continue;
           }
-          changes.email = email;
+          changes.email = emailNorm;
         }
 
         if (Object.keys(changes).length > 0) {
@@ -155,13 +162,13 @@ export async function POST(req: NextRequest) {
         const hash = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
           data: {
-            name,
-            email,
+            name: nameNorm,
+            email: emailNorm,
             rut: rutNorm,
             password: hash,
             role: role ?? "worker",
-            department: department || null,
-            cargo: cargo || null,
+            department,
+            cargo,
             active: true,
             branchId: rowBranchId,
             companyId: rowCompanyId,
