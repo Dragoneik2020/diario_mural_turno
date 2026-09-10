@@ -38,22 +38,52 @@ function stripAccents(s: string): string {
   return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Resuelve un texto de "Tipo" (label personalizado, clave o alias en inglés) a su clave. */
+/** Resuelve un texto de "Tipo" (label configurado, clave, alias en inglés o con prefijo "turno"). */
 function buildTypeAliases(
   labels: Record<string, string>,
   custom: { key: string; label: string }[]
 ): Map<string, string> {
   const map = new Map<string, string>(Object.entries(TYPE_ALIASES));
+  const addLabel = (label: string, key: string) => {
+    const n = stripAccents(label);
+    if (!n) return;
+    map.set(n, key);
+    map.set(`turno ${n}`, key);
+    map.set(`tipo ${n}`, key);
+    map.set(`turno de ${n}`, key);
+  };
   for (const k of SHIFT_TYPE_KEYS) {
     map.set(k, k);
-    const l = labels[k];
-    if (l) map.set(stripAccents(l), k);
+    addLabel(labels[k] || "", k);
   }
   for (const c of custom) {
     map.set(c.key, c.key);
-    if (c.label) map.set(stripAccents(c.label), c.key);
+    addLabel(c.label, c.key);
   }
   return map;
+}
+
+function resolveType(
+  raw: string,
+  aliases: Map<string, string>,
+  fallback: string
+): string {
+  const n = stripAccents(raw);
+  const hit = aliases.get(n);
+  if (hit) return hit;
+  const n2 = n.replace(/^(turno de |tipo de |turno |tipo )+/g, "").trim();
+  const hit2 = aliases.get(n2);
+  if (hit2) return hit2;
+  // contiene un label conocido (elige el más largo, p.ej. "turno cierre feriado")
+  let best = "";
+  let bestLen = 0;
+  for (const [alias, key] of aliases) {
+    if (alias.length >= 4 && n.includes(alias) && alias.length > bestLen) {
+      best = key;
+      bestLen = alias.length;
+    }
+  }
+  return best || fallback;
 }
 
 /** Acepta AAAA-MM-DD, DD-MM-AAAA (con /, - o .) y años de 2 dígitos como 26-09-26. */
@@ -107,7 +137,7 @@ export async function POST(req: NextRequest) {
     ]);
     const typeAliases = buildTypeAliases(branchLabels, branchCustom);
     const defaultType =
-      typeAliases.get(stripAccents(String(body.defaultType || ""))) || "completo";
+      resolveType(String(body.defaultType || ""), typeAliases, "completo");
     // Horario por tipo (base + tipos extra): se usa cuando la fila no trae Inicio/Fin.
     const branchSchedules = await getShiftTypeSchedules(session.branchId);
     const schedMap: Record<string, { start: string; end: string }> = {
@@ -135,7 +165,7 @@ export async function POST(req: NextRequest) {
       const dateStr = parseDateStr(data.date);
       const startStr = parseTimeStr(data.start);
       const endStr = parseTimeStr(data.end);
-      const type = data.type ? typeAliases.get(stripAccents(data.type)) || defaultType : defaultType;
+      const type = data.type ? resolveType(data.type, typeAliases, defaultType) : defaultType;
       // Si la fila no trae Inicio/Fin, usa el horario configurado para ese tipo.
       const sched = schedMap[type];
       const resStart = startStr ?? (sched?.start ?? null);

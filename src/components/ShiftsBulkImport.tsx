@@ -112,16 +112,44 @@ function buildAliasMap(
   custom: TypeInfoItem[]
 ): Record<string, string> {
   const map: Record<string, string> = { ...TYPE_ALIASES };
+  const add = (label: string, key: string) => {
+    const n = normalize(label);
+    if (!n) return;
+    map[n] = key;
+    map[`turno ${n}`] = key;
+    map[`tipo ${n}`] = key;
+    map[`turno de ${n}`] = key;
+  };
   for (const k of SHIFT_TYPE_KEYS) {
     map[k] = k;
-    const l = labels[k];
-    if (l) map[normalize(l)] = k;
+    add(labels[k] ?? "", k);
   }
   for (const c of custom) {
     map[c.key] = c.key;
-    if (c.label) map[normalize(c.label)] = c.key;
+    add(c.label, c.key);
   }
   return map;
+}
+
+/** Igual que el servidor: quita prefijos "turno/tipo" y matchea por coincidencia parcial. */
+function resolveTypeAlias(
+  raw: string,
+  aliases: Record<string, string>,
+  fallback: string
+): string {
+  const n = normalize(raw);
+  if (aliases[n]) return aliases[n];
+  const n2 = n.replace(/^(turno de |tipo de |turno |tipo )+/g, "").trim();
+  if (aliases[n2]) return aliases[n2];
+  let best = "";
+  let bestLen = 0;
+  for (const [alias, key] of Object.entries(aliases)) {
+    if (alias.length >= 4 && n.includes(alias) && alias.length > bestLen) {
+      best = key;
+      bestLen = alias.length;
+    }
+  }
+  return best || fallback;
 }
 
 export default function ShiftsBulkImport({ onDone, users = [] }: Props) {
@@ -242,7 +270,7 @@ export default function ShiftsBulkImport({ onDone, users = [] }: Props) {
       const shiftName = iName >= 0 ? String(r[iName] ?? "").trim() : "";
       const notes = iNotes >= 0 ? String(r[iNotes] ?? "").trim() : "";
 
-      const type = typeRaw ? aliases[typeRaw] || defaultType : defaultType;
+      const type = typeRaw ? resolveTypeAlias(typeRaw, aliases, defaultType) : defaultType;
       const dateStr = parseDateStr(dateRaw);
       const sched = typeSchedules[type];
       const startStr = parseTimeStr(startRaw) ?? sched?.start ?? null;
