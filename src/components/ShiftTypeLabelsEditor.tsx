@@ -62,9 +62,7 @@ export default function ShiftTypeLabelsEditor() {
 
   function addCustom() {
     const key = nextCustomKey(custom);
-    const date = new Date();
-    const prefix = String(date.getFullYear()).slice(2);
-    const next = [...custom, { key, label: `TIPO ${prefix}${custom.length + 1}${SHIFT_TYPE_KEYS.length}`, start: "09:00", end: "17:00" }];
+    const next = [...custom, { key, label: "TIPO NUEVO", start: "09:00", end: "17:00" }];
     setCustom(next);
     setLabels((prev) => ({ ...prev, [key]: "" }));
     setSchedules((prev) => ({ ...prev, [key]: { start: "09:00", end: "17:00" } }));
