@@ -5,6 +5,7 @@ import { requireAdmin, canManageRole, branchWhere, isMultiBranch } from "@/lib/s
 import { notifyShiftById } from "@/lib/email";
 import { normalizeRut } from "@/lib/rut";
 import { nom, txt } from "@/lib/normalize";
+import { getShiftTypeLabels, getShiftTypeCustom, SHIFT_TYPE_KEYS } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,25 @@ function stripAccents(s: string): string {
   return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Acepta AAAA-MM-DD o DD-MM-AAAA (también con "/"). */
+/** Resuelve un texto de "Tipo" (label personalizado, clave o alias en inglés) a su clave. */
+function buildTypeAliases(
+  labels: Record<string, string>,
+  custom: { key: string; label: string }[]
+): Map<string, string> {
+  const map = new Map<string, string>(Object.entries(TYPE_ALIASES));
+  for (const k of SHIFT_TYPE_KEYS) {
+    map.set(k, k);
+    const l = labels[k];
+    if (l) map.set(stripAccents(l), k);
+  }
+  for (const c of custom) {
+    map.set(c.key, c.key);
+    if (c.label) map.set(stripAccents(c.label), c.key);
+  }
+  return map;
+}
+
+/** Acepta AAAA-MM-DD, DD-MM-AAAA (con /, - o .) y años de 2 dígitos como 26-09-26. */
 function parseDateStr(raw: string): string | null {
   const v = (raw || "").trim();
   let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(v);
@@ -46,10 +65,12 @@ function parseDateStr(raw: string): string | null {
     if (Number(mo) < 1 || Number(mo) > 12 || Number(d) < 1 || Number(d) > 31) return null;
     return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
-  m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(v);
-  if (m) {
-    const [, d, mo, y] = m;
+  let two = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(v);
+  if (!two) two = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})$/.exec(v);
+  if (two) {
+    const [, d, mo, yRaw] = two;
     if (Number(mo) < 1 || Number(mo) > 12 || Number(d) < 1 || Number(d) > 31) return null;
+    const y = Number(yRaw) < 100 ? 2000 + Number(yRaw) : Number(yRaw);
     return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return null;
@@ -80,7 +101,12 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
-    const defaultType: string = TYPE_ALIASES[stripAccents(String(body.defaultType || ""))] || "completo";
+    const typeAliases = buildTypeAliases(
+      await getShiftTypeLabels(session.branchId),
+      await getShiftTypeCustom(session.branchId)
+    );
+    const defaultType =
+      typeAliases.get(stripAccents(String(body.defaultType || ""))) || "completo";
     const isSuper = isMultiBranch(session);
 
     const created: { rut: string; name: string; date: string }[] = [];
@@ -135,7 +161,7 @@ export async function POST(req: NextRequest) {
       // Turno nocturno: si el fin es menor o igual al inicio, cruza la medianoche.
       if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
 
-      const type = data.type ? TYPE_ALIASES[stripAccents(data.type)] || defaultType : defaultType;
+      const type = data.type ? typeAliases.get(stripAccents(data.type)) || defaultType : defaultType;
       const status = data.status?.trim() === "confirmado" ? "confirmado" : "asignado";
 
       // Evita duplicados exactos (mismo trabajador con el mismo inicio).
