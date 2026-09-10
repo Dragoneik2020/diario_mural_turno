@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SHIFT_TYPE_LABELS,
-  SHIFT_TYPE_STYLES,
+  shiftTypeStyle,
   fmtTime,
   fmtDate,
   hoursBetween,
@@ -46,7 +46,7 @@ export default function MyShifts({ shifts }: { shifts: MyShift[] }) {
             <div className="min-w-0">
               <div className="text-sm font-medium text-slate-800">
                 {fmtDate(s.date)}{" "}
-                <span className={`badge border ${SHIFT_TYPE_STYLES[s.type as string]}`}>
+                <span className={`badge border ${shiftTypeStyle(s.type as string)}`}>
                   {SHIFT_TYPE_LABELS[s.type as string]}
                 </span>
               </div>

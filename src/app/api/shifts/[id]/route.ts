@@ -11,7 +11,7 @@ const updateSchema = z.object({
   date: z.string().optional(),
   start: z.string().optional(),
   end: z.string().optional(),
-  type: z.enum(["manana", "tarde", "noche", "completo", "otro"]).optional(),
+  type: z.string().trim().min(1).max(40).optional(),
   name: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["asignado", "confirmado", "cumplido"]).optional(),

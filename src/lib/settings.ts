@@ -73,6 +73,40 @@ export async function getShiftTypeSchedules(
   return out;
 }
 
+export interface ShiftTypeCustomItem {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+/** Tipos de turno extra creados por el admin (p.ej. FESTIVO, GUARDIA...). */
+export async function getShiftTypeCustom(
+  branchId?: string | null
+): Promise<ShiftTypeCustomItem[]> {
+  const row = await getSetting("shiftTypeCustom", branchId);
+  if (!row) return [];
+  try {
+    const parsed = JSON.parse(row.value);
+    if (!Array.isArray(parsed)) return [];
+    const out: ShiftTypeCustomItem[] = [];
+    for (const x of parsed) {
+      if (!x || typeof x !== "object") continue;
+      const key = String(x.key || "").trim();
+      if (!/^[a-z0-9]+$/i.test(key)) continue;
+      out.push({
+        key,
+        label: x.label ? String(x.label) : key.toUpperCase(),
+        start: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(x.start)) ? String(x.start) : "09:00",
+        end: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(x.end)) ? String(x.end) : "17:00",
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /** Lista de cargos PROPIA de la sucursal (sin heredar de otras sucursales/empresas). */
 export async function getCargos(branchId?: string | null): Promise<string[]> {
   if (!branchId) return [...DEFAULT_CARGOS];

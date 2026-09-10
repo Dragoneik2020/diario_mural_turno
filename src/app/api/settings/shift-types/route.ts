@@ -7,6 +7,8 @@ import {
   SHIFT_TYPE_KEYS,
   getShiftTypeLabels,
   getShiftTypeSchedules,
+  getShiftTypeCustom,
+  ShiftTypeCustomItem,
   GLOBAL_BRANCH_ID,
 } from "@/lib/settings";
 import { nom } from "@/lib/normalize";
@@ -18,16 +20,42 @@ const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export async function GET() {
   try {
     const session = await requireUser();
-    const [labels, schedules] = await Promise.all([
+    const [labels, schedules, custom] = await Promise.all([
       getShiftTypeLabels(session.branchId),
       getShiftTypeSchedules(session.branchId),
+      getShiftTypeCustom(session.branchId),
     ]);
-    return NextResponse.json({ labels, schedules });
+    return NextResponse.json({ labels, schedules, custom });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED")
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     return NextResponse.json({ error: "Error" }, { status: 500 });
   }
+}
+
+function parseCustom(input: unknown): ShiftTypeCustomItem[] {
+  if (!Array.isArray(input)) return [];
+  const out: ShiftTypeCustomItem[] = [];
+  const used = new Set<string>();
+  for (const it of input) {
+    if (!it || typeof it !== "object") continue;
+    const raw = it as any;
+    let key = typeof raw.key === "string" ? raw.key.trim() : "";
+    if (!/^[a-z0-9]+$/i.test(key)) key = "";
+    if (!key) {
+      let i = 1;
+      while (used.has("custom" + i)) i++;
+      key = "custom" + i;
+    } else if (used.has(key)) {
+      continue;
+    }
+    used.add(key);
+    const label = typeof raw.label === "string" && raw.label.trim() ? nom(raw.label) : key.toUpperCase();
+    const start = typeof raw.start === "string" && TIME_RE.test(raw.start.trim()) ? raw.start.trim() : "09:00";
+    const end = typeof raw.end === "string" && TIME_RE.test(raw.end.trim()) ? raw.end.trim() : "17:00";
+    out.push({ key, label, start, end });
+  }
+  return out;
 }
 
 export async function PATCH(req: NextRequest) {
@@ -64,6 +92,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const branchId = session.branchId ?? GLOBAL_BRANCH_ID;
+    const custom = parseCustom(body && Array.isArray(body.custom) ? body.custom : null);
     await prisma.setting.upsert({
       where: { branchId_key: { branchId, key: "shiftTypeLabels" } },
       update: { value: JSON.stringify(labels) },
@@ -74,7 +103,12 @@ export async function PATCH(req: NextRequest) {
       update: { value: JSON.stringify(schedules) },
       create: { branchId, key: "shiftTypeSchedules", value: JSON.stringify(schedules) },
     });
-    return NextResponse.json({ labels, schedules });
+    await prisma.setting.upsert({
+      where: { branchId_key: { branchId, key: "shiftTypeCustom" } },
+      update: { value: JSON.stringify(custom) },
+      create: { branchId, key: "shiftTypeCustom", value: JSON.stringify(custom) },
+    });
+    return NextResponse.json({ labels, schedules, custom });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED" || e.message === "FORBIDDEN")
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });

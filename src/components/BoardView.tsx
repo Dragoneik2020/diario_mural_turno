@@ -7,7 +7,7 @@ import Avatar from "@/components/Avatar";
 import EmptyState from "@/components/EmptyState";
 import {
   SHIFT_TYPE_LABELS,
-  SHIFT_TYPE_STYLES,
+  shiftTypeStyle,
   fmtTime,
   fmtDate,
   fmtWeekday,
@@ -85,7 +85,7 @@ export default function BoardView({ shifts }: { shifts: BoardShift[] }) {
                       </div>
                     </div>
                   </div>
-                  <span className={`badge border ${SHIFT_TYPE_STYLES[s.type as string]}`}>
+                  <span className={`badge border ${shiftTypeStyle(s.type as string)}`}>
                     {SHIFT_TYPE_LABELS[s.type as string]}
                   </span>
                 </div>

@@ -14,7 +14,7 @@ const shiftSchema = z.object({
   date: z.string(), // ISO date (YYYY-MM-DD)
   start: z.string(), // HH:mm
   end: z.string(), // HH:mm
-  type: z.enum(["manana", "tarde", "noche", "completo", "otro"]).default("completo"),
+  type: z.string().trim().min(1).max(40).default("completo"),
   name: z.string().optional(),
   notes: z.string().optional(),
 });

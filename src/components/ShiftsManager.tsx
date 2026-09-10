@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ShiftForm, { UserOption } from "@/components/ShiftForm";
 import ShiftsBulkImport from "@/components/ShiftsBulkImport";
 import {
-  SHIFT_TYPE_STYLES,
+  shiftTypeStyle,
   SHIFT_STATUS_LABELS,
   SHIFT_STATUS_STYLES,
   fmtTime,
@@ -117,7 +117,7 @@ export default function ShiftsManager({
                 {fmtTime(s.start)}–{fmtTime(s.end)}
               </td>
               <td className="py-2 pr-2">
-                <span className={`badge border ${SHIFT_TYPE_STYLES[s.type as string]}`}>
+                <span className={`badge border ${shiftTypeStyle(s.type as string)}`}>
                   {t(s.type as string)}
                 </span>
               </td>

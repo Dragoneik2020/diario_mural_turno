@@ -6,7 +6,6 @@ import {
   useShiftTypeLabels,
   useShiftTypeSchedules,
 } from "@/components/ShiftTypeLabelsProvider";
-import { SHIFT_TYPE_KEYS } from "@/lib/shiftTypes";
 
 export interface UserOption {
   id: string;
@@ -47,7 +46,7 @@ export default function ShiftForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const { t } = useShiftTypeLabels();
+  const { t, keys } = useShiftTypeLabels();
   const { sched } = useShiftTypeSchedules();
   const [userId, setUserId] = useState(defaultUserId || users?.[0]?.id || "");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -154,7 +153,7 @@ export default function ShiftForm({
         <div>
           <label className="label">Tipo</label>
           <select className="input" value={type} onChange={(e) => changeType(e.target.value)}>
-            {SHIFT_TYPE_KEYS.map((k) => (
+            {keys.map((k) => (
               <option key={k} value={k}>{t(k)}</option>
             ))}
           </select>

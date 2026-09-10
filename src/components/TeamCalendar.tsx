@@ -5,7 +5,7 @@ import {
   fmtTime,
   fmtDate,
   fmtWeekday,
-  SHIFT_TYPE_STYLES,
+  shiftTypeStyle,
   SHIFT_STATUS_LABELS,
   SHIFT_STATUS_STYLES,
 } from "@/lib/format";
@@ -265,7 +265,7 @@ export default function TeamCalendar({
                       {fmtTime(s.start)} – {fmtTime(s.end)}
                     </div>
                     <div className="mt-1 flex gap-1">
-                      <span className={`badge border ${SHIFT_TYPE_STYLES[s.type]}`}>
+                      <span className={`badge border ${shiftTypeStyle(s.type)}`}>
                         {t(s.type)}
                       </span>
                       <span className={`badge border ${SHIFT_STATUS_STYLES[s.status]}`}>

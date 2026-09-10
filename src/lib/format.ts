@@ -14,6 +14,11 @@ export const SHIFT_TYPE_STYLES: Record<string, string> = {
   otro: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
+/** Estilo de badge para cualquier tipo de turno; los extra usan el de "otro". */
+export function shiftTypeStyle(k: string): string {
+  return SHIFT_TYPE_STYLES[k] || SHIFT_TYPE_STYLES.otro;
+}
+
 export const SHIFT_STATUS_LABELS: Record<string, string> = {
   asignado: "Asignado",
   confirmado: "Confirmado",

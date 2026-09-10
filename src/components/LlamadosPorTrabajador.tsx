@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  SHIFT_TYPE_STYLES,
+  shiftTypeStyle,
   SHIFT_STATUS_LABELS,
   SHIFT_STATUS_STYLES,
   fmtDate,
@@ -153,7 +153,7 @@ export default function LlamadosPorTrabajador() {
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <span className={`badge border ${SHIFT_TYPE_STYLES[s.type]}`}>
+                        <span className={`badge border ${shiftTypeStyle(s.type)}`}>
                           {t(s.type)}
                         </span>
                         <span className={`badge border ${SHIFT_STATUS_STYLES[s.status]}`}>
