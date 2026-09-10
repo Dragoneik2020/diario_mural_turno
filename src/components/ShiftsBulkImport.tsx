@@ -133,13 +133,20 @@ export default function ShiftsBulkImport({ onDone, users = [] }: Props) {
   const [error, setError] = useState("");
   const [typeLabels, setTypeLabels] = useState<Record<string, string>>({});
   const [typeCustom, setTypeCustom] = useState<TypeInfoItem[]>([]);
+  const [typeSchedules, setTypeSchedules] = useState<Record<string, { start: string; end: string }>>({});
 
   useEffect(() => {
     fetch("/api/settings/shift-types")
       .then((r) => r.json())
       .then((d) => {
         setTypeLabels(d.labels || {});
-        setTypeCustom(Array.isArray(d.custom) ? d.custom : []);
+        const cus = Array.isArray(d.custom) ? d.custom : [];
+        setTypeCustom(cus);
+        const sch: Record<string, { start: string; end: string }> = {
+          ...(d.schedules || {}),
+        };
+        for (const c of cus) sch[c.key] = { start: c.start, end: c.end };
+        setTypeSchedules(sch);
       })
       .catch(() => {});
   }, []);
@@ -235,12 +242,13 @@ export default function ShiftsBulkImport({ onDone, users = [] }: Props) {
       const shiftName = iName >= 0 ? String(r[iName] ?? "").trim() : "";
       const notes = iNotes >= 0 ? String(r[iNotes] ?? "").trim() : "";
 
+      const type = typeRaw ? aliases[typeRaw] || defaultType : defaultType;
       const dateStr = parseDateStr(dateRaw);
-      const startStr = parseTimeStr(startRaw);
-      const endStr = parseTimeStr(endRaw);
+      const sched = typeSchedules[type];
+      const startStr = parseTimeStr(startRaw) ?? sched?.start ?? null;
+      const endStr = parseTimeStr(endRaw) ?? sched?.end ?? null;
       const rutOk = rutRaw && isValidRut(rutRaw);
       const worker = rutMap.get(normalize(rutRaw)) ?? null;
-      const type = typeRaw ? aliases[typeRaw] || defaultType : defaultType;
 
       const err = !rutRaw
         ? "Falta RUT"

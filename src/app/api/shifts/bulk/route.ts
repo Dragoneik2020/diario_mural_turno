@@ -5,7 +5,7 @@ import { requireAdmin, canManageRole, branchWhere, isMultiBranch } from "@/lib/s
 import { notifyShiftById } from "@/lib/email";
 import { normalizeRut } from "@/lib/rut";
 import { nom, txt } from "@/lib/normalize";
-import { getShiftTypeLabels, getShiftTypeCustom, SHIFT_TYPE_KEYS } from "@/lib/settings";
+import { getShiftTypeLabels, getShiftTypeCustom, getShiftTypeSchedules, SHIFT_TYPE_KEYS } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -101,12 +101,21 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const items = Array.isArray(body.items) ? body.items : [];
-    const typeAliases = buildTypeAliases(
-      await getShiftTypeLabels(session.branchId),
-      await getShiftTypeCustom(session.branchId)
-    );
+    const [branchLabels, branchCustom] = await Promise.all([
+      getShiftTypeLabels(session.branchId),
+      getShiftTypeCustom(session.branchId),
+    ]);
+    const typeAliases = buildTypeAliases(branchLabels, branchCustom);
     const defaultType =
       typeAliases.get(stripAccents(String(body.defaultType || ""))) || "completo";
+    // Horario por tipo (base + tipos extra): se usa cuando la fila no trae Inicio/Fin.
+    const branchSchedules = await getShiftTypeSchedules(session.branchId);
+    const schedMap: Record<string, { start: string; end: string }> = {
+      ...branchSchedules,
+    };
+    for (const c of branchCustom) {
+      schedMap[c.key] = { start: c.start, end: c.end };
+    }
     const isSuper = isMultiBranch(session);
 
     const created: { rut: string; name: string; date: string }[] = [];
@@ -126,6 +135,11 @@ export async function POST(req: NextRequest) {
       const dateStr = parseDateStr(data.date);
       const startStr = parseTimeStr(data.start);
       const endStr = parseTimeStr(data.end);
+      const type = data.type ? typeAliases.get(stripAccents(data.type)) || defaultType : defaultType;
+      // Si la fila no trae Inicio/Fin, usa el horario configurado para ese tipo.
+      const sched = schedMap[type];
+      const resStart = startStr ?? (sched?.start ?? null);
+      const resEnd = endStr ?? (sched?.end ?? null);
 
       if (!rutNorm && !data.userId) {
         errors.push({ rut: rutRaw || "—", error: "Falta RUT del trabajador" });
@@ -135,7 +149,7 @@ export async function POST(req: NextRequest) {
         errors.push({ rut: rutRaw || "—", error: "Fecha inválida (usa DD-MM-AAAA o AAAA-MM-DD)" });
         continue;
       }
-      if (!startStr || !endStr) {
+      if (!resStart || !resEnd) {
         errors.push({ rut: rutRaw || "—", error: "Horario inválido (usa HH:mm)" });
         continue;
       }
@@ -156,12 +170,11 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const start = combine(dateStr, startStr);
-      let end = combine(dateStr, endStr);
+      const start = combine(dateStr, resStart);
+      let end = combine(dateStr, resEnd);
       // Turno nocturno: si el fin es menor o igual al inicio, cruza la medianoche.
       if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
 
-      const type = data.type ? typeAliases.get(stripAccents(data.type)) || defaultType : defaultType;
       const status = data.status?.trim() === "confirmado" ? "confirmado" : "asignado";
 
       // Evita duplicados exactos (mismo trabajador con el mismo inicio).
