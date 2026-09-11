@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { useShiftTypeLabels } from "@/components/ShiftTypeLabelsProvider";
 import {
   CalendarDays,
@@ -38,11 +39,6 @@ interface ReportShift {
   status: string;
   name: string | null;
   user: { id: string; name: string };
-}
-
-function csvCell(v: string | number | null): string {
-  const s = v === null ? "" : String(v);
-  return `"${s.replace(/"/g, '""')}"`;
 }
 
 function isoWeekNow(): string {
@@ -167,7 +163,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
     }
   }
 
-  async function exportCSV() {
+  async function exportXLSX() {
     let shifts = data;
     let label = rangeLabel;
     if (!shifts) {
@@ -186,6 +182,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
         return;
       }
     }
+    if (!shifts) return;
 
     const header = [
       "Trabajador",
@@ -198,7 +195,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
       "Tipo",
       "Estado",
     ];
-    if (!shifts) return;
+    const widths = [26, 26, 14, 14, 8, 8, 8, 22, 12];
     const rows = shifts.map((s) => {
       const start = new Date(s.start);
       const end = new Date(s.end);
@@ -207,26 +204,20 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
         s.user.name,
         s.name || "",
         start.toLocaleDateString("es-ES"),
-        start.toLocaleDateString("es-ES", { weekday: "long" }),
+        capitalize(start.toLocaleDateString("es-ES", { weekday: "long" })),
         start.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
         end.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
         horas,
         t(s.type),
         SHIFT_STATUS_LABELS[s.status] || s.status,
-      ]
-        .map(csvCell)
-        .join(",");
+      ];
     });
 
-    const csv = "\uFEFF" + [header.map(csvCell).join(","), ...rows].join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `reporte-turnos-${(label || "rango")
-      .replace(/\s+/g, "-")
-      .toLowerCase()}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = widths.map((wch) => ({ wch }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Turnos");
+    XLSX.writeFile(wb, `reporte-turnos-${(label || "rango").replace(/\s+/g, "-").toLowerCase()}.xlsx`);
     setBusy(false);
   }
 
@@ -289,7 +280,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
             <div>
               <h3 className="text-slate-100">Reportes de turnos</h3>
               <p className="text-xs text-slate-500">
-                Resumen visual y exportación del rango seleccionado.
+                Resumen visual y exportación a Excel (XLSX) del rango seleccionado.
               </p>
             </div>
           </div>
@@ -305,8 +296,8 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
                 </>
               )}
             </button>
-            <button onClick={exportCSV} disabled={busy} className="btn-ghost">
-              <Download className="h-4 w-4" /> CSV
+            <button onClick={exportXLSX} disabled={busy} className="btn-ghost">
+              <Download className="h-4 w-4" /> XLSX
             </button>
           </div>
         </div>
@@ -558,11 +549,11 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
                     trabajadores
                   </span>
                   <button
-                    onClick={exportCSV}
+                    onClick={exportXLSX}
                     disabled={busy}
                     className="inline-flex items-center gap-1.5 font-semibold text-brand-400 hover:text-brand-300"
                   >
-                    <Download className="h-3.5 w-3.5" /> Exportar CSV
+                    <Download className="h-3.5 w-3.5" /> Exportar XLSX
                   </button>
                 </div>
               </>

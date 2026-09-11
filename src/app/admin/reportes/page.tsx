@@ -24,8 +24,8 @@ export default async function ReportesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Reportes de turnos</h1>
           <p className="text-slate-500">
-            Cuenta DIOS: resumen visual y exportación de turnos por empresa, trabajador y rango de
-            fechas.
+            Cuenta DIOS: resumen visual y exportación a Excel (XLSX) por empresa, trabajador y
+            rango de fechas.
           </p>
         </div>
 
