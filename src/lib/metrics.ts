@@ -150,7 +150,11 @@ export async function getGlobalMetrics(
       select: { userId: true },
     }),
     prisma.shift.count({
-      where: { ...scope, date: { gte: from }, status: "asignado" },
+      where: {
+        ...scope,
+        date: { gte: from },
+        status: { in: ["asignado", "rechazado"] },
+      },
     }),
   ]);
 

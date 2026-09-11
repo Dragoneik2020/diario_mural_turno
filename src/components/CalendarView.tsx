@@ -149,6 +149,10 @@ export default function CalendarView() {
                   className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
                     main && main.status === "asignado"
                       ? "bg-slate-300 ring-2 ring-slate-200"
+                      : main &&
+                        (main.status === "rechazado" ||
+                          main.status === "cancelado")
+                      ? "bg-rose-400 ring-2 ring-rose-200"
                       : main
                       ? SHIFT_TYPE_STYLES_DOT[main.type] ?? SHIFT_TYPE_STYLES_DOT.otro
                       : "bg-slate-400"
@@ -173,6 +177,10 @@ export default function CalendarView() {
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
           Confirmado / Cumplido
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-rose-400 ring-2 ring-rose-200" />
+          Rechazado / Cancelado
         </span>
       </div>
 
@@ -208,7 +216,7 @@ export default function CalendarView() {
                     </span>
                   </div>
                 </div>
-                {s.status !== "cumplido" && (
+                {s.status !== "cumplido" && s.status !== "cancelado" && (
                   <div className="flex flex-col gap-1">
                     {s.status === "asignado" && (
                       <button
@@ -218,12 +226,22 @@ export default function CalendarView() {
                         Confirmar
                       </button>
                     )}
-                    <button
-                      onClick={() => setStatus(s.id, "cumplido")}
-                      className="btn-ghost px-2 py-1 text-xs"
-                    >
-                      Marcar cumplido
-                    </button>
+                    {s.status === "confirmado" && (
+                      <button
+                        onClick={() => setStatus(s.id, "cumplido")}
+                        className="btn-ghost px-2 py-1 text-xs"
+                      >
+                        Marcar cumplido
+                      </button>
+                    )}
+                    {s.status === "asignado" && (
+                      <button
+                        onClick={() => setStatus(s.id, "rechazado")}
+                        className="btn-ghost px-2 py-1 text-xs text-rose-600 hover:bg-rose-50"
+                      >
+                        Rechazar
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

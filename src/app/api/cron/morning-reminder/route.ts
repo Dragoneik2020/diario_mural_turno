@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     for (const s of shifts) {
       if (s.user.role === "admin" || s.user.role === "superadmin" || s.user.role === "dios") continue;
-      if (s.status === "cumplido") continue;
+      if (s.status === "cumplido" || s.status === "rechazado" || s.status === "cancelado") continue;
       await notifyShiftById(s.id, "morning");
       sent++;
     }

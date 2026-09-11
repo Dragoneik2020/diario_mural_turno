@@ -175,6 +175,8 @@ export default function ShiftForm({
             <option value="asignado">Asignado</option>
             <option value="confirmado">Confirmado</option>
             <option value="cumplido">Cumplido</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>
       )}

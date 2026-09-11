@@ -58,7 +58,7 @@ export default async function AdminPage() {
         orderBy: { start: "desc" },
       }),
       prisma.shift.findMany({
-        where: { status: "asignado", ...scope },
+        where: { status: { in: ["asignado", "rechazado"] }, ...scope },
         include: { user: { select: { id: true, name: true, department: true } } },
         orderBy: { start: "asc" },
       }),

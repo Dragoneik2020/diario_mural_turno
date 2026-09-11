@@ -23,12 +23,16 @@ export const SHIFT_STATUS_LABELS: Record<string, string> = {
   asignado: "Asignado",
   confirmado: "Confirmado",
   cumplido: "Cumplido",
+  rechazado: "Rechazado",
+  cancelado: "Cancelado",
 };
 
 export const SHIFT_STATUS_STYLES: Record<string, string> = {
   asignado: "bg-slate-100 text-slate-600 border-slate-200",
   confirmado: "bg-sky-100 text-sky-700 border-sky-200",
   cumplido: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  rechazado: "bg-rose-100 text-rose-700 border-rose-200",
+  cancelado: "bg-zinc-100 text-zinc-600 border-zinc-300",
 };
 
 export function fmtTime(d: string | Date): string {

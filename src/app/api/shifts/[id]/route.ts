@@ -14,7 +14,9 @@ const updateSchema = z.object({
   type: z.string().trim().min(1).max(40).optional(),
   name: z.string().optional(),
   notes: z.string().optional(),
-  status: z.enum(["asignado", "confirmado", "cumplido"]).optional(),
+  status: z
+    .enum(["asignado", "confirmado", "cumplido", "rechazado", "cancelado"])
+    .optional(),
 });
 
 function combine(dateStr: string, timeStr: string): Date {
@@ -45,15 +47,15 @@ export async function PATCH(
     const parsed = updateSchema.parse(body);
 
     // Reglas de estado:
-    // - Admin puede poner cualquier estado.
-    // - Trabajador solo puede confirmar (confirmado) o marcar cumplido (cumplido).
-    if (parsed.status && !isAdmin) {
-      if (parsed.status === "asignado") {
-        return NextResponse.json(
-          { error: "No puedes volver a marcar como asignado" },
-          { status: 403 }
-        );
-      }
+    // - Admin puede poner cualquier estado (incluido cancelado).
+    // - Trabajador puede confirmar (confirmado), marcar cumplido (cumplido) o
+    //   rechazar (rechazado); no puede volver a "asignado" ni cancelar.
+    const WORKER_ALLOWED = new Set(["confirmado", "cumplido", "rechazado"]);
+    if (parsed.status && !isAdmin && !WORKER_ALLOWED.has(parsed.status)) {
+      return NextResponse.json(
+        { error: "No puedes cambiar el turno a ese estado" },
+        { status: 403 }
+      );
     }
 
     const data: any = {};

@@ -134,7 +134,7 @@ export default function PersonalShiftsPanel() {
                               </span>
                             </div>
                           </div>
-                          {s.status !== "cumplido" && (
+                          {s.status !== "cumplido" && s.status !== "cancelado" && (
                             <div className="flex flex-col gap-1">
                               {s.status === "asignado" && (
                                 <button
@@ -145,13 +145,24 @@ export default function PersonalShiftsPanel() {
                                   {busy === s.id ? "…" : "Confirmar"}
                                 </button>
                               )}
-                              <button
-                                onClick={() => setStatus(s.id, "cumplido")}
-                                disabled={busy === s.id}
-                                className="btn-ghost px-2 py-1 text-xs"
-                              >
-                                Marcar cumplido
-                              </button>
+                              {s.status === "confirmado" && (
+                                <button
+                                  onClick={() => setStatus(s.id, "cumplido")}
+                                  disabled={busy === s.id}
+                                  className="btn-ghost px-2 py-1 text-xs"
+                                >
+                                  Marcar cumplido
+                                </button>
+                              )}
+                              {s.status === "asignado" && (
+                                <button
+                                  onClick={() => setStatus(s.id, "rechazado")}
+                                  disabled={busy === s.id}
+                                  className="btn-ghost px-2 py-1 text-xs text-rose-600 hover:bg-rose-50"
+                                >
+                                  {busy === s.id ? "…" : "Rechazar"}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

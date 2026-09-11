@@ -31,7 +31,7 @@ A focused, Spanish-language shift-management and internal-comms tool for teams t
 ## Capabilities and Constraints
 
 - Roles: `admin`, `worker`. Workers cannot change their own role, active flag, or cargo.
-- A Shift has: `userId`, `date`, `start`, `end`, `type` (manana/tarde/noche/completo/otro, labels configurable), `status` (asignado/confirmado/cumplido), optional `name`, `notes`.
+- A Shift has: `userId`, `date`, `start`, `end`, `type` (manana/tarde/noche/completo/otro, labels configurable), `status` (asignado/confirmado/cumplido/rechazado/cancelado), optional `name`, `notes`. The worker can confirm, mark done or **reject** (rechazado); the admin can set any status, including **cancel** (cancelado).
 - Configurable lists live in DB `Setting` rows: `shiftTypeLabels`, `cargos`, `emailNotifications` (assignment + morning templates), `smtp`, `cronSecret`.
 - **Intended SaaS multi-empresa (confirmed):** future work must isolate tenant data. The current implementation is single-organization and has no tenant scoping yet — record this as a known gap to close before multi-customer launch.
 - Stack (inferred from repo, confirm if wrong): Next.js App Router + TypeScript + Tailwind + Prisma; Postgres for production (Dokploy), SQLite for local dev.
