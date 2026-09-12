@@ -149,11 +149,11 @@ export default function ShiftsManager({
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-auto rounded-2xl border border-white/10 bg-[#0c0c1c] p-5 shadow-2xl shadow-black/60">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">Editar turno</h3>
-              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600">
+              <h3 className="font-semibold text-slate-100">Editar turno</h3>
+              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-200">
                 <X className="h-4 w-4" />
               </button>
             </div>
