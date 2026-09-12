@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getEmailNotifications, getCronSecret } from "@/lib/settings";
 import { notifyShiftById } from "@/lib/email";
+import { sendPushToUser } from "@/lib/push";
+import { fmtTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const branches = await prisma.branch.findMany({ select: { id: true } });
   let sent = 0;
+  let pushSent = 0;
   let shiftsToday = 0;
 
   for (const branch of branches) {
@@ -47,8 +50,15 @@ export async function POST(req: NextRequest) {
       if (s.status === "cumplido" || s.status === "rechazado" || s.status === "cancelado") continue;
       await notifyShiftById(s.id, "morning");
       sent++;
+      await sendPushToUser(s.user.id, {
+        title: "Recordatorio de turno",
+        body: `Hola ${s.user.name}, tienes turno hoy de ${fmtTime(s.start)} a ${fmtTime(s.end)}.`,
+        url: "/dashboard",
+        tag: `morning-${today.toISOString().slice(0, 10)}`,
+      });
+      pushSent++;
     }
   }
 
-  return NextResponse.json({ ok: true, shiftsToday, emailsSent: sent });
+  return NextResponse.json({ ok: true, shiftsToday, emailsSent: sent, pushSent });
 }
