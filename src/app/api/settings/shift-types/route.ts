@@ -17,15 +17,40 @@ export const dynamic = "force-dynamic";
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await requireUser();
+    const searchParams = new URL(req.url).searchParams;
+    const branchId = searchParams.get("branchId");
+
+    let target = session.branchId ?? GLOBAL_BRANCH_ID;
+    if (branchId && branchId !== session.branchId) {
+      // El superadmin solo dentro de su empresa; dios en cualquier sucursal.
+      const allowed =
+        session.role !== "superadmin" ||
+        (
+          await prisma.branch.findFirst({
+            where: { id: branchId, companyId: session.companyId ?? "__NONE__" },
+            select: { id: true },
+          })
+        ) !== null;
+      if (allowed) target = branchId;
+    }
+
     const [labels, schedules, custom] = await Promise.all([
-      getShiftTypeLabels(session.branchId),
-      getShiftTypeSchedules(session.branchId),
-      getShiftTypeCustom(session.branchId),
+      getShiftTypeLabels(target),
+      getShiftTypeSchedules(target),
+      getShiftTypeCustom(target),
     ]);
-    return NextResponse.json({ labels, schedules, custom });
+    const branchName = target
+      ? (
+          await prisma.branch.findUnique({
+            where: { id: target },
+            select: { name: true },
+          })
+        )?.name ?? target
+      : target;
+    return NextResponse.json({ branchId: target, branchName, labels, schedules, custom });
   } catch (e: any) {
     if (e.message === "UNAUTHENTICATED")
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });

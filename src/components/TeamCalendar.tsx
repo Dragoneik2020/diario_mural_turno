@@ -13,6 +13,19 @@ import { useShiftTypeLabels } from "@/components/ShiftTypeLabelsProvider";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Avatar from "@/components/Avatar";
 
+interface OrgCustomType {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+interface OrgTypes {
+  labels: Record<string, string>;
+  schedules: Record<string, { start: string; end: string }>;
+  custom: OrgCustomType[];
+}
+
 interface TeamShift {
   id: string;
   date: string;
@@ -52,7 +65,7 @@ export default function TeamCalendar({
   branches?: { id: string; name: string }[];
 }) {
   const today = new Date();
-  const { t } = useShiftTypeLabels();
+  const { t, sched } = useShiftTypeLabels();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selected, setSelected] = useState<string>(key(today));
@@ -61,6 +74,41 @@ export default function TeamCalendar({
   const [branchId, setBranchId] = useState("");
   const [cargo, setCargo] = useState("");
   const [cargos, setCargos] = useState<string[]>([]);
+  const [orgTypes, setOrgTypes] = useState<OrgTypes | null>(null);
+
+  useEffect(() => {
+    if (!superadmin || !branchId) {
+      setOrgTypes(null);
+      return;
+    }
+    fetch(`/api/settings/shift-types?branchId=${encodeURIComponent(branchId)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setOrgTypes({
+          labels: d.labels || {},
+          schedules: d.schedules || {},
+          custom: Array.isArray(d.custom) ? d.custom : [],
+        });
+      })
+      .catch(() => setOrgTypes(null));
+  }, [superadmin, branchId]);
+
+  const nameOf = (type: string) => {
+    if (orgTypes) {
+      for (const c of orgTypes.custom) if (c.key === type) return c.label;
+      if (orgTypes.labels[type]) return orgTypes.labels[type];
+    }
+    return t(type);
+  };
+
+  const schedOf = (type: string) => {
+    if (orgTypes) {
+      for (const c of orgTypes.custom) if (c.key === type) return { start: c.start, end: c.end };
+      if (orgTypes.schedules[type]) return orgTypes.schedules[type];
+      return undefined;
+    }
+    return sched(type);
+  };
 
   const loadCargos = useCallback(async () => {
     const q = superadmin && branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
@@ -262,11 +310,16 @@ export default function TeamCalendar({
                     {s.user.cargo && <div className="text-xs text-slate-400">{s.user.cargo}</div>}
                     {s.name && <div className="text-xs text-slate-500">{s.name}</div>}
                     <div className="text-sm text-slate-700">
-                      {fmtTime(s.start)} – {fmtTime(s.end)}
+                      {(() => {
+                        const sc = schedOf(s.type);
+                        return sc
+                          ? `${sc.start} – ${sc.end}`
+                          : `${fmtTime(s.start)} – ${fmtTime(s.end)}`;
+                      })()}
                     </div>
                     <div className="mt-1 flex gap-1">
                       <span className={`badge border ${shiftTypeStyle(s.type)}`}>
-                        {t(s.type)}
+                        {nameOf(s.type)}
                       </span>
                       <span className={`badge border ${SHIFT_STATUS_STYLES[s.status]}`}>
                         {SHIFT_STATUS_LABELS[s.status]}
