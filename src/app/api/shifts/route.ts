@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     const to = searchParams.get("to");
     const userIdParam = searchParams.get("userId");
     const companyIdParam = searchParams.get("companyId");
+    const departmentParam = searchParams.get("department");
 
     const where: any = { ...branchWhere(session) };
     if (isDios(session) && companyIdParam && companyIdParam !== "all")
@@ -43,6 +44,8 @@ export async function GET(req: NextRequest) {
 
     if (canManageRole(session.role)) {
       if (userIdParam) where.userId = userIdParam;
+      if (departmentParam && departmentParam !== "all")
+        where.user = { ...(where.user || {}), department: departmentParam };
     } else {
       where.userId = session.id;
     }

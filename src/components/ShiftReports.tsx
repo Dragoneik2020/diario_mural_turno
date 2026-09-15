@@ -25,6 +25,7 @@ interface ReportUser {
   id: string;
   name: string;
   role?: string;
+  department?: string | null;
 }
 interface ReportCompany {
   id: string;
@@ -38,7 +39,7 @@ interface ReportShift {
   type: string;
   status: string;
   name: string | null;
-  user: { id: string; name: string };
+  user: { id: string; name: string; department?: string | null };
 }
 
 function isoWeekNow(): string {
@@ -96,6 +97,8 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
   const [companies, setCompanies] = useState<ReportCompany[]>([]);
   const [company, setCompany] = useState<string>("all");
   const [worker, setWorker] = useState<string>("all");
+  const [dept, setDept] = useState<string>("all");
+  const [departments, setDepartments] = useState<string[]>([]);
   const [mode, setMode] = useState<"month" | "week" | "custom">("month");
   const [monthValue, setMonthValue] = useState(monthNow());
   const [weekValue, setWeekValue] = useState(isoWeekNow());
@@ -113,8 +116,13 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
       .then((r) => r.json())
       .then((d) => {
         const list: ReportUser[] = Array.isArray(d) ? d : d.users || [];
+        const deps = Array.from(
+          new Set(list.map((u) => u.department).filter((d) => Boolean(d)) as string[])
+        ).sort();
+        setDepartments(deps);
         setUsers(list.filter((u) => u.role !== "admin" && u.role !== "superadmin" && u.role !== "dios"));
         setWorker("all");
+        setDept("all");
       })
       .catch(() => {});
   }, [isDios, company]);
@@ -138,6 +146,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
     const base = `/api/shifts?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     const q = new URLSearchParams();
     if (worker !== "all") q.set("userId", worker);
+    if (dept !== "all") q.set("department", dept);
     if (isDios && company !== "all") q.set("companyId", company);
     return { url: `${base}&${q.toString()}`, label };
   }
@@ -186,6 +195,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
 
     const header = [
       "Trabajador",
+      "Departamento",
       "Nombre del turno",
       "Fecha",
       "Día",
@@ -195,13 +205,14 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
       "Tipo",
       "Estado",
     ];
-    const widths = [26, 26, 14, 14, 8, 8, 8, 22, 12];
+    const widths = [24, 16, 22, 12, 12, 7, 7, 7, 18, 10];
     const rows = shifts.map((s) => {
       const start = new Date(s.start);
       const end = new Date(s.end);
       const horas = Math.round(((end.getTime() - start.getTime()) / 36e5) * 10) / 10;
       return [
         s.user.name,
+        s.user.department || "",
         s.name || "",
         start.toLocaleDateString("es-ES"),
         capitalize(start.toLocaleDateString("es-ES", { weekday: "long" })),
@@ -341,6 +352,17 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Departamento</label>
+            <select className="input" value={dept} onChange={(e) => setDept(e.target.value)}>
+              <option value="all">Todos</option>
+              {departments.map((d) => (
+                <option key={d} value={d}>
+                  {d}
                 </option>
               ))}
             </select>
