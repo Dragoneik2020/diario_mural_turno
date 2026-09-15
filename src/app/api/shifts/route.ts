@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     const shifts = await prisma.shift.findMany({
       where,
-      include: { user: { select: { id: true, name: true, department: true } } },
+      include: { user: { select: { id: true, name: true, department: true, rut: true } } },
       orderBy: { start: "desc" },
     });
 

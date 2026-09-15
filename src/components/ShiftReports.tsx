@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useShiftTypeLabels } from "@/components/ShiftTypeLabelsProvider";
+import { formatRut } from "@/lib/rut";
 import {
   CalendarDays,
   CheckCircle2,
@@ -39,7 +40,7 @@ interface ReportShift {
   type: string;
   status: string;
   name: string | null;
-  user: { id: string; name: string; department?: string | null };
+  user: { id: string; name: string; department?: string | null; rut?: string | null };
 }
 
 function isoWeekNow(): string {
@@ -194,6 +195,7 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
     if (!shifts) return;
 
     const header = [
+      "RUT",
       "Trabajador",
       "Departamento",
       "Nombre del turno",
@@ -205,12 +207,13 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
       "Tipo",
       "Estado",
     ];
-    const widths = [24, 16, 22, 12, 12, 7, 7, 7, 18, 10];
+    const widths = [13, 24, 16, 22, 12, 12, 7, 7, 7, 18, 10];
     const rows = shifts.map((s) => {
       const start = new Date(s.start);
       const end = new Date(s.end);
       const horas = Math.round(((end.getTime() - start.getTime()) / 36e5) * 10) / 10;
       return [
+        formatRut(s.user.rut) || "",
         s.user.name,
         s.user.department || "",
         s.name || "",
@@ -498,7 +501,8 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
                   <table className="table w-full min-w-[46rem] text-sm">
                     <thead>
                       <tr>
-                        <th className="px-5 py-3">Trabajador</th>
+                        <th className="px-5 py-3">RUT</th>
+                        <th>Trabajador</th>
                         <th>Fecha</th>
                         <th>Día</th>
                         <th>Horario</th>
@@ -514,6 +518,9 @@ export default function ShiftReports({ isDios = false }: { isDios?: boolean }) {
                         const end = new Date(s.end);
                         return (
                           <tr key={s.id}>
+                            <td className="whitespace-nowrap px-5 py-2.5 tabular-nums text-slate-500">
+                              {formatRut(s.user.rut) || "—"}
+                            </td>
                             <td className="px-5 py-2.5 font-medium text-slate-200">
                               {s.user.name}
                             </td>
