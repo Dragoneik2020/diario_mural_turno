@@ -8,6 +8,7 @@ import { nom, txt } from "@/lib/normalize";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
+  userId: z.string().optional(),
   date: z.string().optional(),
   start: z.string().optional(),
   end: z.string().optional(),
@@ -58,7 +59,39 @@ export async function PATCH(
       );
     }
 
+    // Reasignación de trabajador (solo admin): valida que el objetivo exista y
+    // pertenezca a la misma empresa/sucursal (mismas reglas que en creación).
     const data: any = {};
+    let reassigned = false;
+    if (parsed.userId && parsed.userId !== shift.userId) {
+      if (!isAdmin)
+        return NextResponse.json(
+          { error: "Solo un admin puede reasignar el turno" },
+          { status: 403 }
+        );
+      const target = await prisma.user.findUnique({
+        where: { id: parsed.userId },
+        select: { id: true, branchId: true, branch: { select: { companyId: true } } },
+      });
+      if (!target)
+        return NextResponse.json({ error: "Trabajador no encontrado" }, { status: 404 });
+      if (session.role === "superadmin" && target.branch?.companyId !== session.companyId) {
+        return NextResponse.json(
+          { error: "Solo puedes asignar turnos en tu empresa" },
+          { status: 403 }
+        );
+      }
+      if (session.role !== "superadmin" && session.role !== "dios" && target.branchId !== session.branchId) {
+        return NextResponse.json(
+          { error: "Solo puedes asignar turnos a tu sucursal" },
+          { status: 403 }
+        );
+      }
+      data.userId = target.id;
+      data.branchId = target.branchId ?? shift.branchId ?? null;
+      reassigned = true;
+    }
+
     const timeOf = (d: Date) => d.toTimeString().slice(0, 5);
     if (parsed.start !== undefined || parsed.end !== undefined || parsed.date !== undefined) {
       const day = (parsed.date || shift.date.toISOString().slice(0, 10)).slice(0, 10);
@@ -75,6 +108,7 @@ export async function PATCH(
     if (parsed.name !== undefined) data.name = parsed.name ? nom(parsed.name) : "";
     if (parsed.notes !== undefined) data.notes = parsed.notes ? txt(parsed.notes) : "";
     if (parsed.status) data.status = parsed.status;
+    if (reassigned) data.status = "asignado";
 
     const updated = await prisma.shift.update({
       where: { id: params.id },
@@ -82,7 +116,8 @@ export async function PATCH(
       include: { user: { select: { id: true, name: true, department: true } } },
     });
 
-    if (isAdmin && parsed.status === "asignado") void notifyShiftById(params.id);
+    if (isAdmin && (parsed.status?.toString() === "asignado" || reassigned))
+      void notifyShiftById(params.id);
 
     return NextResponse.json({ shift: updated });
   } catch (e: any) {
