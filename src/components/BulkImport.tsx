@@ -165,13 +165,26 @@ export default function BulkImport({ onDone, branches = [], superadmin = false, 
     });
   }
 
-  function downloadTemplate() {
-    const a = document.createElement("a");
-    a.href = "/api/users/template";
-    a.download = "Planilla_trabajadores_ejemplo.xlsx";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  async function downloadTemplate() {
+    setError("");
+    try {
+      const res = await fetch("/api/users/template");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Error ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Planilla_trabajadores_ejemplo.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message || "No se pudo descargar la planilla. Inténtalo nuevamente.");
+    }
   }
 
   async function importNow() {

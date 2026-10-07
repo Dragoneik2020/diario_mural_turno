@@ -1,4 +1,4 @@
-const CACHE_NAME = "diario-turnos-v1";
+﻿const CACHE_NAME = "diario-turnos-v2";
 const RUNTIME_CACHE = "diario-turnos-runtime";
 
 self.addEventListener("install", (event) => {
@@ -21,6 +21,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // Las APIs (descargas, datos, auth) no se interceptan: deben ir a la red.
+  if (url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
     fetch(request)
@@ -32,7 +34,7 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() =>
-        caches.match(request).then((cached) => cached || caches.match("/", { cacheName: RUNTIME_CACHE }))
+        caches.match(request).then((cached) => cached || caches.match("/", { cacheName: RUNTIME_CACHE })).then((r) => r || Response.error())
       )
   );
 });
@@ -42,12 +44,12 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { body: event.data ? event.data.text() : "Tienes una actualización." };
+    data = { body: event.data ? event.data.text() : "Tienes una actualizaciÃ³n." };
   }
 
   event.waitUntil(
     self.registration.showNotification(data.title || "Diario de Turnos", {
-      body: data.body || "Tienes una actualización.",
+      body: data.body || "Tienes una actualizaciÃ³n.",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
       data: { url: data.url || "/dashboard" },
